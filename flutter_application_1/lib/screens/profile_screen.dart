@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../common/color_extension.dart';
 import '../common/common_widgets.dart';
+import 'main_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -9,15 +10,7 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: ColorExtension.backgroundColor,
-      bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: ColorExtension.primaryColor,
-        unselectedItemColor: ColorExtension.grayColor,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
-          BottomNavigationBarItem(icon: Icon(Icons.fitness_center), label: "Entrenamientos"),
-          BottomNavigationBarItem(icon: Icon(Icons.sports_gymnastics), label: "Ejercicios"),
-        ],
-      ),
+      bottomNavigationBar: const CustomBottomNavigation(currentIndex: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -53,7 +46,7 @@ class ProfileScreen extends StatelessWidget {
                       CircleAvatar(
                         radius: 50,
                         backgroundColor: ColorExtension.primaryColor,
-                        child: Icon(
+                        child: const Icon(
                           Icons.person,
                           size: 50,
                           color: Colors.white,
@@ -69,9 +62,9 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      ProfileDetail(title: "Edad", value: "25 años"),
-                      ProfileDetail(title: "Altura", value: "1.75 m"),
-                      ProfileDetail(title: "Peso", value: "70 kg"),
+                      const ProfileDetail(title: "Edad", value: "25 años"),
+                      const ProfileDetail(title: "Altura", value: "1.75 m"),
+                      const ProfileDetail(title: "Peso", value: "70 kg"),
                     ],
                   ),
                 ),
@@ -98,7 +91,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Column(
+                  child: const Column(
                     children: [
                       ProfileDetail(title: "Objetivos", value: "Ganar Músculo, Perder Peso"),
                     ],
