@@ -11,7 +11,7 @@ extension ColorExtension on Color {
   static Color get blackColor => Colors.black;
   static Color get backgroundColor => const Color(0xFFF5F5F5); 
   
-  // Gradiente que hice para el fondo de la pantalla de bienvenida
+  // Gradiente que hice para el fondo de pantalla de bienvenida
   static LinearGradient get welcomeGradient => LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
