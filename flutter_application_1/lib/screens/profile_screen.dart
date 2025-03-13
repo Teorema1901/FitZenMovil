@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../common/color_extension.dart';
 import '../common/common_widgets.dart';
 import 'main_screen.dart';
+import 'welcome_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -99,11 +100,27 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
                 Center(
-                  child: PrimaryButton(
-                    text: "Actualizar Datos",
-                    onPressed: () {
-                      // 
-                    },
+                  child: Column(
+                    children: [
+                      PrimaryButton(
+                        text: "Actualizar Datos",
+                        onPressed: () {
+                          // Acción para actualizar datos
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      PrimaryButton(
+                        text: "Cerrar Sesión",
+                        isOutlined: true,
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                            (route) => false,
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ],

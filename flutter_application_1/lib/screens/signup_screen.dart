@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../common/color_extension.dart';
 import '../common/common_widgets.dart';
 import 'login_screen.dart';
-import 'complete_profile_screen.dart'; 
+import 'complete_profile_screen.dart';
 
 class SignupScreen extends StatelessWidget {
   const SignupScreen({Key? key}) : super(key: key);
@@ -18,8 +18,17 @@ class SignupScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.arrow_back, color: ColorExtension.textColor),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 20),
-                // 
                 Text(
                   'Crear Tu',
                   style: TextStyle(
@@ -37,7 +46,6 @@ class SignupScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 50),
-                // 
                 const CustomTextField(
                   hintText: 'Nombre Completo',
                 ),
@@ -57,7 +65,6 @@ class SignupScreen extends StatelessWidget {
                   isPassword: true,
                 ),
                 const SizedBox(height: 40),
-                // 
                 PrimaryButton(
                   text: 'REGISTRARSE',
                   onPressed: () {
@@ -68,7 +75,6 @@ class SignupScreen extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 50),
-                // 
                 Align(
                   alignment: Alignment.center,
                   child: Row(

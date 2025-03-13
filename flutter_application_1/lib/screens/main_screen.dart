@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../common/color_extension.dart';
 import 'profile_screen.dart';
 import 'exercises_screen.dart';
+import 'workout_screen.dart'; // Importa la pantalla de entrenamiento
 
 class CustomBottomNavigation extends StatelessWidget {
   final int currentIndex;
@@ -25,8 +26,11 @@ class CustomBottomNavigation extends StatelessWidget {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => const ProfileScreen()),
           );
+        } else if (index == 1) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const WorkoutScreen()),
+          );
         } else if (index == 2) {
-          // Navegar a la pantalla de ejercicios
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => const ExercisesScreen()),
           );

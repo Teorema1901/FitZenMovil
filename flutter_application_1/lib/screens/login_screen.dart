@@ -4,7 +4,6 @@ import '../common/common_widgets.dart';
 import 'signup_screen.dart';
 import 'profile_screen.dart';
 
-
 class LoginScreen extends StatelessWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
@@ -19,8 +18,17 @@ class LoginScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.arrow_back, color: ColorExtension.textColor),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 20),
-                // 
                 Text(
                   'Hola',
                   style: TextStyle(
@@ -38,7 +46,6 @@ class LoginScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 50),
-                // 
                 const CustomTextField(
                   hintText: 'Email',
                   keyboardType: TextInputType.emailAddress,
@@ -49,7 +56,6 @@ class LoginScreen extends StatelessWidget {
                   isPassword: true,
                 ),
                 const SizedBox(height: 20),
-                // 
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -64,18 +70,16 @@ class LoginScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 40),
-                // 
                 PrimaryButton(
                   text: 'INICIAR SESIÓN',
                   onPressed: () {
                     Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
-                  );
+                      context,
+                      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+                    );
                   },
                 ),
                 const SizedBox(height: 50),
-                // 
                 Align(
                   alignment: Alignment.center,
                   child: Row(

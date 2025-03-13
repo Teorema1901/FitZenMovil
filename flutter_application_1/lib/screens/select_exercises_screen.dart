@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import '../common/color_extension.dart';
-import 'main_screen.dart';
 
-class ExercisesScreen extends StatefulWidget {
-  const ExercisesScreen({Key? key}) : super(key: key);
+class SelectExercisesScreen extends StatefulWidget {
+  final Function(List<Map<String, dynamic>>) onExercisesSelected;
+
+  const SelectExercisesScreen({Key? key, required this.onExercisesSelected}) : super(key: key);
 
   @override
-  State<ExercisesScreen> createState() => _ExercisesScreenState();
+  State<SelectExercisesScreen> createState() => _SelectExercisesScreenState();
 }
 
-class _ExercisesScreenState extends State<ExercisesScreen> {
+class _SelectExercisesScreenState extends State<SelectExercisesScreen> {
   bool _showCategoryFilter = false;
   bool _showMuscleGroupFilter = false;
   String _selectedCategory = "Categoria";
   String _selectedMuscleGroup = "Músculos";
+  Map<String, bool> _selectedExercises = {};
 
   final List<String> _categories = [
     "Todos",
@@ -136,8 +138,30 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1C2126), // 
-      bottomNavigationBar: const CustomBottomNavigation(currentIndex: 2),
+      backgroundColor: const Color(0xFF1C2126),
+      appBar: AppBar(
+        title: const Text("Seleccionar Ejercicios"),
+        backgroundColor: const Color(0xFF2A2F36),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.check, color: Colors.white),
+            onPressed: () {
+              final selectedExercises = _exercises
+                  .where((exercise) => _selectedExercises[exercise["name"]] == true)
+                  .toList();
+              widget.onExercisesSelected(selectedExercises);
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -248,8 +272,9 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                     color: Colors.black.withOpacity(0.2),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
-                  ),
+                    ),
                 ],
+                
               ),
               child: Column(
                 children: _categories.map((category) {
@@ -287,7 +312,6 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
               ),
             ),
           
-          // Dropdown para filtros por grupo muscular
           if (_showMuscleGroupFilter)
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -300,7 +324,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                     color: Colors.black.withOpacity(0.2),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
-                  ),
+                    ),
                 ],
               ),
               child: Column(
@@ -339,25 +363,13 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
               ),
             ),
           
-          // 
-          Padding(
-            padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 8.0),
-            child: Text(
-              "Ejercicios populares",
-              style: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 16,
-              ),
-            ),
-          ),
-          
-          // Lista de ejercicios
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               itemCount: filteredExercises.length,
               itemBuilder: (context, index) {
                 final exercise = filteredExercises[index];
+                _selectedExercises.putIfAbsent(exercise["name"], () => false);
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12.0),
                   decoration: BoxDecoration(
@@ -382,7 +394,6 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                         child: Image.asset(
                           exercise["imageUrl"],
                           errorBuilder: (context, error, stackTrace) {
-                            // Fallback para cuando la imagen no se encuentra que ese icono que puse general
                             final firstLetter = exercise["name"][0].toUpperCase();
                             return CircleAvatar(
                               backgroundColor: Colors.grey,
@@ -415,13 +426,15 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                         fontSize: 14,
                       ),
                     ),
-                    trailing: const Icon(
-                      Icons.chevron_right,
-                      color: Colors.grey,
+                    trailing: Checkbox(
+                      value: _selectedExercises[exercise["name"]],
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedExercises[exercise["name"]] = value ?? false;
+                        });
+                      },
+                      activeColor: ColorExtension.primaryColor,
                     ),
-                    onTap: () {
-                      // Navegar al detalle del ejercicio
-                    },
                   ),
                 );
               },
