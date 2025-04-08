@@ -3,7 +3,12 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  final String baseUrl = 'http://127.0.0.1:3100/api/auth';
+  // Configura la baseUrl según el entorno:
+  // Para el emulador Android
+   final String baseUrl = 'http://10.0.2.2:3100/api/auth';
+
+  // Para dispositivo físico (verifica la IP de tu PC en la red local)
+  //final String baseUrl = 'http://192.168.0.50:3100/api/auth';
 
   Future<Map<String, dynamic>> login(String correo, String contrasena) async {
     final url = Uri.parse('$baseUrl/login');
@@ -16,7 +21,6 @@ class AuthService {
       }),
     );
 
-    // En ambos casos se espera una respuesta en JSON, ya sea de éxito o error.
     return jsonDecode(response.body);
   }
 }
