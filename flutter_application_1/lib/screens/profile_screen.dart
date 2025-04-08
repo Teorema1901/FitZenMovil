@@ -3,12 +3,111 @@ import '../common/color_extension.dart';
 import '../common/common_widgets.dart';
 import 'main_screen.dart';
 import 'welcome_screen.dart';
+import '../services/session_service.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  Map<String, dynamic>? userData;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  // Método para cargar los datos del usuario desde SharedPreferences
+  Future<void> _loadUserData() async {
+    final data = await SessionService.getUserData();
+    
+    setState(() {
+      userData = data;
+      isLoading = false;
+    });
+
+    // Si no hay datos de usuario, redirigir a la página de bienvenida
+    if (data == null) {
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+          (route) => false,
+        );
+      }
+    }
+  }
+
+  // Método para cerrar sesión
+  void _logout() async {
+    await SessionService.logout();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+      (route) => false,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Mostrar un indicador de carga mientras se obtienen los datos
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: ColorExtension.backgroundColor,
+        body: Center(
+          child: CircularProgressIndicator(color: ColorExtension.primaryColor),
+        ),
+      );
+    }
+
+    // Manejo de datos dinámicos con conversión de tipos
+    final String nombre = userData?["nombre"]?.toString() ?? "Usuario";
+    final String correo = userData?["correo"]?.toString() ?? "correo@ejemplo.com";
+    
+    // Conversión segura de tipos - maneja tanto números como strings que representen números
+    int edad = 0;
+    if (userData?["edad"] != null) {
+      if (userData!["edad"] is int) {
+        edad = userData!["edad"];
+      } else if (userData!["edad"] is String) {
+        edad = int.tryParse(userData!["edad"]) ?? 0;
+      } else if (userData!["edad"] is double) {
+        edad = userData!["edad"].toInt();
+      }
+    }
+    
+    final String sexo = userData?["sexo"]?.toString() ?? "";
+    
+    // Manejo similar para valores numéricos
+    double estatura = 0.0;
+    if (userData?["estatura"] != null) {
+      if (userData!["estatura"] is double) {
+        estatura = userData!["estatura"];
+      } else if (userData!["estatura"] is int) {
+        estatura = userData!["estatura"].toDouble();
+      } else if (userData!["estatura"] is String) {
+        estatura = double.tryParse(userData!["estatura"]) ?? 0.0;
+      }
+    }
+    
+    double peso = 0.0;
+    if (userData?["peso"] != null) {
+      if (userData!["peso"] is double) {
+        peso = userData!["peso"];
+      } else if (userData!["peso"] is int) {
+        peso = userData!["peso"].toDouble();
+      } else if (userData!["peso"] is String) {
+        peso = double.tryParse(userData!["peso"]) ?? 0.0;
+      }
+    }
+    
+    final String objetivo = userData?["objetivo"]?.toString() ?? "No definido";
+
     return Scaffold(
       backgroundColor: ColorExtension.backgroundColor,
       bottomNavigationBar: const CustomBottomNavigation(currentIndex: 0),
@@ -55,17 +154,25 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        "Juan Pérez",
+                        nombre,
                         style: TextStyle(
                           color: ColorExtension.textColor,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+                      Text(
+                        correo,
+                        style: TextStyle(
+                          color: ColorExtension.grayColor,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 20),
-                      const ProfileDetail(title: "Edad", value: "25 años"),
-                      const ProfileDetail(title: "Altura", value: "1.75 m"),
-                      const ProfileDetail(title: "Peso", value: "70 kg"),
+                      ProfileDetail(title: "Edad", value: "$edad años"),
+                      ProfileDetail(title: "Altura", value: "${estatura.toStringAsFixed(2)} m"),
+                      ProfileDetail(title: "Peso", value: "${peso.toStringAsFixed(1)} kg"),
+                      ProfileDetail(title: "Sexo", value: sexo),
                     ],
                   ),
                 ),
@@ -92,9 +199,9 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
-                      ProfileDetail(title: "Objetivos", value: "Ganar Músculo, Perder Peso"),
+                      ProfileDetail(title: "Objetivos", value: objetivo),
                     ],
                   ),
                 ),
@@ -112,13 +219,7 @@ class ProfileScreen extends StatelessWidget {
                       PrimaryButton(
                         text: "Cerrar Sesión",
                         isOutlined: true,
-                        onPressed: () {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-                            (route) => false,
-                          );
-                        },
+                        onPressed: _logout,
                       ),
                     ],
                   ),

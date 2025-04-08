@@ -1,10 +1,10 @@
-// login_screen.dart
 import 'package:flutter/material.dart';
 import '../common/color_extension.dart';
 import '../common/common_widgets.dart';
 import 'signup_screen.dart';
 import 'profile_screen.dart';
 import '../services/auth_service.dart';
+import '../services/session_service.dart'; // Importamos el nuevo servicio
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -35,16 +35,26 @@ class _LoginScreenState extends State<LoginScreen> {
           .login(_correoController.text, _contrasenaController.text);
 
       if (response["success"] == true) {
-        // En caso de login exitoso, muestra alerta y navega al perfil
+        // Extrae los datos del usuario de la respuesta
+        final userData = response["data"] as Map<String, dynamic>;
+        
+        // Guardamos los datos en la sesión
+        await SessionService.saveUserData(userData);
+        
+        // Muestra alerta de éxito
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(response["detail"] ?? "Login exitoso"),
             backgroundColor: Colors.green,
           ),
         );
+        
+        // Navega al perfil pasando los datos del usuario
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+          MaterialPageRoute(
+            builder: (context) => ProfileScreen(),
+          ),
         );
       } else {
         // Si las credenciales son incorrectas o hay otro error, muestra alerta correspondiente
@@ -75,6 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // El resto del código de construcción de la UI se mantiene igual
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
