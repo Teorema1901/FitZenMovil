@@ -1,0 +1,2 @@
+C:/Users/Owner/Desktop/FitZenM/FitZenMovil/flutter_application_1/android/app/.cxx/Debug/4gv20591/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/Owner/Desktop/FitZenM/FitZenMovil/flutter_application_1/android/app/.cxx/Debug/4gv20591/arm64-v8a/CMakeFiles/rebuild_cache.dir
