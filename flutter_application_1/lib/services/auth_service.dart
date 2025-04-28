@@ -4,14 +4,14 @@ import 'package:http/http.dart' as http;
 class AuthService {
   // Configura la baseUrl según el entorno:
   // Para el emulador Android
-  final String baseUrl = 'http://127.0.0.1:3100/api/auth';
+  final String baseUrl = 'http://127.0.0.1:3100/api';
   
   // Para dispositivo físico (verifica la IP de tu PC en la red local)
-  // final String baseUrl = 'http://192.168.0.50:3100/api/auth';
-  
+  // final String baseUrl = 'http://192.168.0.50:3100/api';
+
   /// Método para logear usuarios
   Future<Map<String, dynamic>> login(String correo, String contrasena) async {
-    final url = Uri.parse('$baseUrl/login');
+    final url = Uri.parse('$baseUrl/auth/login');
     
     try {
       final response = await http.post(
@@ -23,7 +23,6 @@ class AuthService {
         }),
       );
       
-      // Si la respuesta no es exitosa (código diferente a 200-299)
       if (response.statusCode < 200 || response.statusCode >= 300) {
         print('Error HTTP: ${response.statusCode}');
         return {
@@ -41,7 +40,7 @@ class AuthService {
         'success': false,
         'severity': 'error',
         'summary': 'Error de red',
-        'detail': 'Verifica tu conexión a internet'
+        'detail': 'Verifica tu conexion a internet'
       };
     }
   }
@@ -58,7 +57,7 @@ class AuthService {
     required double peso,
     required String objetivo,
   }) async {
-    final url = Uri.parse('$baseUrl/register');
+    final url = Uri.parse('$baseUrl/auth/register');
     
     try {
       final response = await http.post(
@@ -77,7 +76,6 @@ class AuthService {
         }),
       );
       
-      // Si la respuesta no es exitosa (código diferente a 200-299)
       if (response.statusCode < 200 || response.statusCode >= 300) {
         print('Error HTTP: ${response.statusCode}');
         return {
@@ -102,7 +100,7 @@ class AuthService {
   
   /// Método para obtener los datos del usuario
   Future<Map<String, dynamic>> getUserData(String correo) async {
-    final url = Uri.parse('$baseUrl/user-data');
+    final url = Uri.parse('$baseUrl/auth/user-data');
     
     try {
       final response = await http.post(
@@ -123,6 +121,61 @@ class AuthService {
         };
       }
       
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('Error de red: $e');
+      return {
+        'success': false,
+        'severity': 'error',
+        'summary': 'Error de red',
+        'detail': 'Verifica tu conexión a internet'
+      };
+    }
+  }
+
+  /// Método para actualizar los datos del usuario
+  Future<Map<String, dynamic>> updateUserData({
+    required int usuarioId,
+    required String nombre,
+    required String correo,
+    required String contrasena,
+    required int edad,
+    required String sexo,
+    required double estatura,
+    required double peso,
+    required String objetivo,
+    required int frecuenciaSemanal,
+  }) async {
+    final url = Uri.parse('$baseUrl/usuarios/usuarios');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          'usuario_id': usuarioId,
+          'nombre': nombre,
+          'correo': correo,
+          'contrasena': contrasena,
+          'edad': edad,
+          'sexo': sexo,
+          'estatura': estatura,
+          'peso': peso,
+          'objetivo': objetivo,
+          'frecuencia_semanal': frecuenciaSemanal,
+        }),
+      );
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        print('Error HTTP: ${response.statusCode}');
+        return {
+          'success': false,
+          'severity': 'error',
+          'summary': 'Error al actualizar datos',
+          'detail': 'No se pudieron actualizar los datos del usuario'
+        };
+      }
+
       return jsonDecode(response.body);
     } catch (e) {
       print('Error de red: $e');

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../common/color_extension.dart';
 import 'select_exercises_screen.dart';
 import 'exercise_detail_screen.dart';
+import '../services/routine_service.dart';
+import 'login_screen.dart';
 
 class CreateRoutineScreen extends StatefulWidget {
   const CreateRoutineScreen({Key? key}) : super(key: key);
@@ -21,14 +23,14 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
   }
 
   void _configureExercise(int index) async {
-    final exercise = _exercises[index];
-    
+    final exercise = Map<String, dynamic>.from(_exercises[index]);
+
     if (!exercise.containsKey('series')) {
       exercise['series'] = [
-        {'serie': 1, 'kg': '', 'reps': ''}
+        {'serie': 1, 'kg': '', 'reps': '', 'restTime': 60}
       ];
     }
-    
+
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -42,6 +44,52 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         ),
       ),
     );
+  }
+
+  void _saveRoutine() async {
+    if (_routineNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Por favor, agrega un nombre a tu rutina")),
+      );
+      return;
+    }
+
+    final routineData = {
+      "name": _routineNameController.text,
+      "description": "", // Optional description
+    };
+
+    try {
+      // 1. Create the routine in the backend
+      final routineResponse = await RoutineService.createRoutine(routineData);
+      final rutinaId = routineResponse['data']['rutina_id'] as int;
+
+      // 2. Send the exercises associated with the routine
+      await RoutineService.insertRoutineExercises(rutinaId, _exercises);
+
+      // 3. Return the routine to WorkoutScreen
+      Navigator.pop(context, {
+        "name": _routineNameController.text,
+        "count": _exercises.length,
+        "icon_name": "fitness_center",
+        "exercises": _exercises,
+        "rutina_id": rutinaId,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Rutina creada exitosamente")),
+      );
+    } catch (e) {
+      if (e.toString().contains('Usuario no autenticado')) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error al crear rutina: $e")),
+        );
+      }
+    }
   }
 
   @override
@@ -77,20 +125,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 15.0),
             child: ElevatedButton(
-              onPressed: _exercises.isEmpty ? null : () {
-                if (_routineNameController.text.isNotEmpty) {
-                  Navigator.pop(context, {
-                    "name": _routineNameController.text,
-                    "count": _exercises.length,
-                    "icon": Icons.fitness_center,
-                    "exercises": _exercises,
-                  });
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Por favor, agrega un nombre a tu rutina"))
-                  );
-                }
-              },
+              onPressed: _exercises.isEmpty ? null : _saveRoutine,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
@@ -170,36 +205,36 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                               color: ColorExtension.primaryColor.withOpacity(0.4),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: exercise['imageUrl'] != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Image.asset(
-                                    exercise['imageUrl'],
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Icon(
-                                        Icons.fitness_center,
-                                        color: ColorExtension.primaryColor,
-                                      );
-                                    },
+                            child: exercise['img_url'] != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.network(
+                                      exercise['img_url'],
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Icon(
+                                          Icons.fitness_center,
+                                          color: ColorExtension.primaryColor,
+                                        );
+                                      },
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.fitness_center,
+                                    color: ColorExtension.primaryColor,
                                   ),
-                                )
-                              : Icon(
-                                  Icons.fitness_center,
-                                  color: ColorExtension.primaryColor,
-                                ),
                           ),
                           title: Text(
-                            exercise["name"],
+                            exercise["nombre"]?.toString() ?? 'Ejercicio sin nombre',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           subtitle: Text(
-                            exercise.containsKey("sets") 
-                              ? "${exercise["sets"]} series × ${exercise["reps"]} repeticiones"
-                              : "Toca para configurar series y repeticiones",
+                            exercise.containsKey("series") && (exercise["series"] as List).isNotEmpty
+                                ? "${exercise["series"].length} series × ${(exercise["series"] as List).last['reps'] ?? '0'} repeticiones"
+                                : "Toca para configurar series y repeticiones",
                             style: const TextStyle(
                               color: Colors.grey,
                             ),
@@ -236,17 +271,31 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                   MaterialPageRoute(
                     builder: (context) => SelectExercisesScreen(
                       onExercisesSelected: (selectedExercises) {
+                        setState(() {
+                          for (var newExercise in selectedExercises) {
+                            bool isDuplicate = false;
+                            for (var existingExercise in _exercises) {
+                              if (existingExercise['ejercicio_id'] == newExercise['ejercicio_id']) {
+                                isDuplicate = true;
+                                break;
+                              }
+                            }
+                            if (!isDuplicate) {
+                              _exercises.add(newExercise);
+                            }
+                          }
+                        });
                       },
                     ),
                   ),
                 );
-                
+
                 if (result != null && result is List<Map<String, dynamic>>) {
                   setState(() {
                     for (var newExercise in result) {
                       bool isDuplicate = false;
                       for (var existingExercise in _exercises) {
-                        if (existingExercise['name'] == newExercise['name']) {
+                        if (existingExercise['ejercicio_id'] == newExercise['ejercicio_id']) {
                           isDuplicate = true;
                           break;
                         }

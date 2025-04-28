@@ -4,6 +4,7 @@ import '../common/common_widgets.dart';
 import 'main_screen.dart';
 import 'welcome_screen.dart';
 import '../services/session_service.dart';
+import '../services/auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -15,6 +16,24 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
+  bool isEditing = false;
+
+  // Form controllers
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nombreController;
+  late TextEditingController _edadController;
+  late TextEditingController _estaturaController;
+  late TextEditingController _pesoController;
+  late TextEditingController _frecuenciaSemanalController;
+  String? _sexo;
+  String? _objetivo;
+
+  // Fitness goal options
+  final Map<String, String> fitnessGoals = {
+    'Perdida_Peso': 'Pérdida de Peso',
+    'Ganancia_Muscular': 'Ganancia Muscular',
+    'Acondicionamiento_Fisico': 'Acondicionamiento Físico',
+  };
 
   @override
   void initState() {
@@ -25,13 +44,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Método para cargar los datos del usuario desde SharedPreferences
   Future<void> _loadUserData() async {
     final data = await SessionService.getUserData();
-    
+
     setState(() {
       userData = data;
       isLoading = false;
+
+      // Initialize form controllers with user data
+      _nombreController = TextEditingController(text: userData?["nombre"]?.toString() ?? "Usuario");
+      _edadController = TextEditingController(
+        text: (userData?["edad"] != null ? _parseInt(userData!["edad"]).toString() : "0"),
+      );
+      _estaturaController = TextEditingController(
+        text: (userData?["estatura"] != null ? _parseDouble(userData!["estatura"]).toStringAsFixed(2) : "0.0"),
+      );
+      _pesoController = TextEditingController(
+        text: (userData?["peso"] != null ? _parseDouble(userData!["peso"]).toStringAsFixed(1) : "0.0"),
+      );
+      _frecuenciaSemanalController = TextEditingController(
+        text: (userData?["frecuencia_semanal"] != null ? _parseInt(userData!["frecuencia_semanal"]).toString() : "0"),
+      );
+      _sexo = userData?["sexo"]?.toString() ?? "M";
+      _objetivo = userData?["objetivo"]?.toString() ?? "Perdida_Peso";
     });
 
-    // Si no hay datos de usuario, redirigir a la página de bienvenida
     if (data == null) {
       if (mounted) {
         Navigator.pushAndRemoveUntil(
@@ -41,6 +76,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     }
+  }
+
+  // Helper methods to parse dynamic values
+  int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    if (value is double) return value.toInt();
+    return 0;
+  }
+
+  double _parseDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 
   // Método para cerrar sesión
@@ -53,9 +103,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Método para actualizar los datos del usuario
+  Future<void> _updateUserData() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      isLoading = true;
+    });
+
+    final authService = AuthService();
+    final response = await authService.updateUserData(
+      usuarioId: int.parse(userData!["usuario_id"].toString()),
+      nombre: _nombreController.text,
+      correo: userData!["correo"].toString(), // Use existing email
+      contrasena: userData!["contrasena"].toString(), // Use existing password
+      edad: int.parse(_edadController.text),
+      sexo: _sexo!,
+      estatura: double.parse(_estaturaController.text),
+      peso: double.parse(_pesoController.text),
+      objetivo: _objetivo!,
+      frecuenciaSemanal: int.parse(_frecuenciaSemanalController.text),
+    );
+
+    setState(() {
+      isLoading = false;
+    });
+
+    if (response['success'] == true) {
+      // Update SessionService with new data
+      final updatedData = {
+        "usuario_id": userData!["usuario_id"],
+        "nombre": _nombreController.text,
+        "correo": userData!["correo"],
+        "contrasena": userData!["contrasena"],
+        "edad": int.parse(_edadController.text),
+        "sexo": _sexo,
+        "estatura": double.parse(_estaturaController.text),
+        "peso": double.parse(_pesoController.text),
+        "objetivo": _objetivo,
+        "frecuencia_semanal": int.parse(_frecuenciaSemanalController.text),
+      };
+      await SessionService.saveUserData(updatedData);
+
+      // Reload user data to refresh the UI
+      await _loadUserData();
+
+      setState(() {
+        isEditing = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['detail'])),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['detail'])),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _nombreController.dispose();
+    _edadController.dispose();
+    _estaturaController.dispose();
+    _pesoController.dispose();
+    _frecuenciaSemanalController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Mostrar un indicador de carga mientras se obtienen los datos
     if (isLoading) {
       return Scaffold(
         backgroundColor: ColorExtension.backgroundColor,
@@ -65,49 +183,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    // Manejo de datos dinámicos con conversión de tipos
-    final String nombre = userData?["nombre"]?.toString() ?? "Usuario";
-    final String correo = userData?["correo"]?.toString() ?? "correo@ejemplo.com";
-    
-    // Conversión segura de tipos - maneja tanto números como strings que representen números
-    int edad = 0;
-    if (userData?["edad"] != null) {
-      if (userData!["edad"] is int) {
-        edad = userData!["edad"];
-      } else if (userData!["edad"] is String) {
-        edad = int.tryParse(userData!["edad"]) ?? 0;
-      } else if (userData!["edad"] is double) {
-        edad = userData!["edad"].toInt();
-      }
-    }
-    
-    final String sexo = userData?["sexo"]?.toString() ?? "";
-    
-    // Manejo similar para valores numéricos
-    double estatura = 0.0;
-    if (userData?["estatura"] != null) {
-      if (userData!["estatura"] is double) {
-        estatura = userData!["estatura"];
-      } else if (userData!["estatura"] is int) {
-        estatura = userData!["estatura"].toDouble();
-      } else if (userData!["estatura"] is String) {
-        estatura = double.tryParse(userData!["estatura"]) ?? 0.0;
-      }
-    }
-    
-    double peso = 0.0;
-    if (userData?["peso"] != null) {
-      if (userData!["peso"] is double) {
-        peso = userData!["peso"];
-      } else if (userData!["peso"] is int) {
-        peso = userData!["peso"].toDouble();
-      } else if (userData!["peso"] is String) {
-        peso = double.tryParse(userData!["peso"]) ?? 0.0;
-      }
-    }
-    
-    final String objetivo = userData?["objetivo"]?.toString() ?? "No definido";
-
     return Scaffold(
       backgroundColor: ColorExtension.backgroundColor,
       bottomNavigationBar: const CustomBottomNavigation(currentIndex: 0),
@@ -115,116 +190,262 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                Text(
-                  "Perfil",
-                  style: TextStyle(
-                    color: ColorExtension.textColor,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  Text(
+                    "Perfil",
+                    style: TextStyle(
+                      color: ColorExtension.textColor,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: ColorExtension.primaryColor,
-                        child: const Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Colors.white,
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          spreadRadius: 2,
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        nombre,
-                        style: TextStyle(
-                          color: ColorExtension.textColor,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: ColorExtension.primaryColor,
+                          child: const Icon(
+                            Icons.person,
+                            size: 50,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      Text(
-                        correo,
-                        style: TextStyle(
-                          color: ColorExtension.grayColor,
-                          fontSize: 16,
+                        const SizedBox(height: 10),
+                        if (!isEditing)
+                          Text(
+                            _nombreController.text,
+                            style: TextStyle(
+                              color: ColorExtension.textColor,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        else
+                          TextFormField(
+                            controller: _nombreController,
+                            decoration: InputDecoration(
+                              labelText: "Nombre",
+                              labelStyle: TextStyle(color: ColorExtension.grayColor),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "Por favor, ingresa tu nombre";
+                              }
+                              return null;
+                            },
+                          ),
+                        const SizedBox(height: 20),
+                        if (!isEditing)
+                          ProfileDetail(title: "Edad", value: "${_edadController.text} años")
+                        else
+                          TextFormField(
+                            controller: _edadController,
+                            decoration: InputDecoration(
+                              labelText: "Edad",
+                              labelStyle: TextStyle(color: ColorExtension.grayColor),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "Por favor, ingresa tu edad";
+                              }
+                              final edad = int.tryParse(value);
+                              if (edad == null || edad <= 0) {
+                                return "Por favor, ingresa una edad válida";
+                              }
+                              return null;
+                            },
+                          ),
+                        if (!isEditing)
+                          ProfileDetail(title: "Altura", value: "${_estaturaController.text} m")
+                        else
+                          TextFormField(
+                            controller: _estaturaController,
+                            decoration: InputDecoration(
+                              labelText: "Altura (m)",
+                              labelStyle: TextStyle(color: ColorExtension.grayColor),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "Por favor, ingresa tu altura";
+                              }
+                              final estatura = double.tryParse(value);
+                              if (estatura == null || estatura <= 0) {
+                                return "Por favor, ingresa una altura válida";
+                              }
+                              return null;
+                            },
+                          ),
+                        if (!isEditing)
+                          ProfileDetail(title: "Peso", value: "${_pesoController.text} kg")
+                        else
+                          TextFormField(
+                            controller: _pesoController,
+                            decoration: InputDecoration(
+                              labelText: "Peso (kg)",
+                              labelStyle: TextStyle(color: ColorExtension.grayColor),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "Por favor, ingresa tu peso";
+                              }
+                              final peso = double.tryParse(value);
+                              if (peso == null || peso <= 0) {
+                                return "Por favor, ingresa un peso válido";
+                              }
+                              return null;
+                            },
+                          ),
+                        if (!isEditing)
+                          ProfileDetail(title: "Sexo", value: _sexo == "M" ? "Masculino" : "Femenino")
+                        else
+                          DropdownButtonFormField<String>(
+                            value: _sexo,
+                            decoration: InputDecoration(
+                              labelText: "Sexo",
+                              labelStyle: TextStyle(color: ColorExtension.grayColor),
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: "M", child: Text("Masculino")),
+                              DropdownMenuItem(value: "F", child: Text("Femenino")),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _sexo = value;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null) {
+                                return "Por favor, selecciona tu sexo";
+                              }
+                              return null;
+                            },
+                          ),
+                        if (isEditing)
+                          TextFormField(
+                            controller: _frecuenciaSemanalController,
+                            decoration: InputDecoration(
+                              labelText: "Frecuencia Semanal (días)",
+                              labelStyle: TextStyle(color: ColorExtension.grayColor),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "Por favor, ingresa tu frecuencia semanal";
+                              }
+                              final freq = int.tryParse(value);
+                              if (freq == null || freq <= 0) {
+                                return "Por favor, ingresa una frecuencia válida";
+                              }
+                              return null;
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  Text(
+                    "Objetivos Fitness",
+                    style: TextStyle(
+                      color: ColorExtension.textColor,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          spreadRadius: 2,
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      ProfileDetail(title: "Edad", value: "$edad años"),
-                      ProfileDetail(title: "Altura", value: "${estatura.toStringAsFixed(2)} m"),
-                      ProfileDetail(title: "Peso", value: "${peso.toStringAsFixed(1)} kg"),
-                      ProfileDetail(title: "Sexo", value: sexo),
-                    ],
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        if (!isEditing)
+                          ProfileDetail(title: "Objetivos", value: fitnessGoals[_objetivo] ?? "No definido")
+                        else
+                          DropdownButtonFormField<String>(
+                            value: _objetivo,
+                            decoration: InputDecoration(
+                              labelText: "Objetivos",
+                              labelStyle: TextStyle(color: ColorExtension.grayColor),
+                            ),
+                            items: fitnessGoals.entries
+                                .map((entry) => DropdownMenuItem<String>(
+                                      value: entry.key,
+                                      child: Text(entry.value),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _objetivo = value;
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null) {
+                                return "Por favor, selecciona un objetivo";
+                              }
+                              return null;
+                            },
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 30),
-                Text(
-                  "Objetivos Fitness",
-                  style: TextStyle(
-                    color: ColorExtension.textColor,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(height: 40),
+                  Center(
+                    child: Column(
+                      children: [
+                        PrimaryButton(
+                          text: isEditing ? "Guardar Cambios" : "Actualizar Datos",
+                          onPressed: () {
+                            if (isEditing) {
+                              _updateUserData();
+                            } else {
+                              setState(() {
+                                isEditing = true;
+                              });
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        PrimaryButton(
+                          text: "Cerrar Sesión",
+                          isOutlined: true,
+                          onPressed: _logout,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      ProfileDetail(title: "Objetivos", value: objetivo),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 40),
-                Center(
-                  child: Column(
-                    children: [
-                      PrimaryButton(
-                        text: "Actualizar Datos",
-                        onPressed: () {
-                          // Acción para actualizar datos
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      PrimaryButton(
-                        text: "Cerrar Sesión",
-                        isOutlined: true,
-                        onPressed: _logout,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
