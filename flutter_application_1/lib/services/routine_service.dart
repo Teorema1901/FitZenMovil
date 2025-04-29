@@ -3,17 +3,21 @@ import 'package:http/http.dart' as http;
 import 'session_service.dart';
 
 class RoutineService {
-  static const String baseUrl = "http://127.0.0.1:3100/api"; // Update for physical device if needed
+  static const String baseUrl = "http://127.0.0.1:3100/api";
 
   static Future<Map<String, String>> _getHeaders({bool requireAuth = true}) async {
     if (!requireAuth) {
       return {'Content-Type': 'application/json'};
     }
     final userData = await SessionService.getUserData();
-    final token = userData?['token']?.toString() ?? '';
+    final token = await SessionService.getAuthToken();
+    if (userData == null || userData['usuario_id'] == null) {
+      throw Exception('Usuario no autenticado: userData o usuario_id es nulo');
+    }
+    print('Headers - usuario_id: ${userData['usuario_id']}, token: $token');
     return {
       'Content-Type': 'application/json',
-      if (token.isNotEmpty) 'Authorization': 'Bearer $token',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 
@@ -29,10 +33,10 @@ class RoutineService {
         if (data['success'] == true && data['data'] is List) {
           return List<Map<String, dynamic>>.from(data['data']);
         }
-        throw Exception('Formato de respuesta inesperado');
+        throw Exception('Formato de respuesta inesperado: ${data['detail'] ?? 'Datos no válidos'}');
       } else {
-        print('Error HTTP: ${response.statusCode} - ${response.body}');
-        throw Exception('Error al cargar ejercicios: ${response.statusCode}');
+        print('Error HTTP en getExercises: ${response.statusCode} - ${response.body}');
+        throw Exception('Error al cargar ejercicios: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error en getExercises: $e');
@@ -50,7 +54,7 @@ class RoutineService {
 
     final response = await http.post(
       Uri.parse('$baseUrl/rutina/rutinas-personalizadas'),
-      headers: await _getHeaders(requireAuth: false),
+      headers: await _getHeaders(),
       body: jsonEncode({
         'nombre': routineData['name'],
         'descripcion': routineData['description'] ?? '',
@@ -63,10 +67,10 @@ class RoutineService {
       if (data['success'] == true) {
         return data;
       }
-      throw Exception('Error al crear rutina: ${data['detail']}');
+      throw Exception('Error al crear rutina}');
     } else {
-      print('Error HTTP: ${response.statusCode} - ${response.body}');
-      throw Exception('Error al crear rutina: ${response.statusCode}');
+      print('Error HTTP en createRoutine: ${response.statusCode} - ${response.body}');
+      throw Exception('Error al crear rutina');
     }
   }
 
@@ -98,13 +102,18 @@ class RoutineService {
 
     final response = await http.post(
       Uri.parse('$baseUrl/rutina/rutinas-personalizadas/ejercicios'),
-      headers: await _getHeaders(requireAuth: false),
+      headers: await _getHeaders(),
       body: jsonEncode(exercisesToSend),
     );
 
     if (response.statusCode != 200) {
-      print('Error HTTP: ${response.statusCode} - ${response.body}');
-      throw Exception('Error al asociar ejercicios: ${response.statusCode}');
+      print('Error HTTP en insertRoutineExercises: ${response.statusCode} - ${response.body}');
+      throw Exception('Error al asociar ejercicios: ${response.statusCode} - ${response.body}');
+    }
+
+    final data = jsonDecode(response.body);
+    if (data['success'] != true) {
+      throw Exception('Error al asociar ejercicios: ${data['detail'] ?? 'Error desconocido'}');
     }
   }
 
@@ -120,7 +129,7 @@ class RoutineService {
         Uri.parse('$baseUrl/rutina/rutinas-personalizadas').replace(
           queryParameters: {'usuario_id': usuarioId},
         ),
-        headers: await _getHeaders(requireAuth: false),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -128,14 +137,14 @@ class RoutineService {
         if (data['success'] == true && data['data'] is List) {
           return List<Map<String, dynamic>>.from(data['data']);
         }
-        throw Exception('Formato de respuesta inesperado');
+        throw Exception('Formato de respuesta inesperado: ${data['detail'] ?? 'Datos no válidos'}');
       } else {
-        print('Error HTTP: ${response.statusCode} - ${response.body}');
-        throw Exception('Error al cargar rutinas: ${response.statusCode}');
+        print('Error HTTP en getPersonalizedRoutines: ${response.statusCode} - ${response.body}');
+        throw Exception('Error al cargar rutinas');
       }
     } catch (e) {
       print('Error en getPersonalizedRoutines: $e');
-      throw Exception('Error al cargar rutinas: $e');
+      throw Exception('Error al cargar rutinas');
     }
   }
 
@@ -154,7 +163,7 @@ class RoutineService {
             'usuario_id': usuarioId,
           },
         ),
-        headers: await _getHeaders(requireAuth: false),
+        headers: await _getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -163,10 +172,10 @@ class RoutineService {
           print('getRoutineDetails response: ${data['data']}');
           return data['data'] as Map<String, dynamic>;
         }
-        throw Exception('Formato de respuesta inesperado');
+        throw Exception('Formato de respuesta inesperado: ${data['detail'] ?? 'Datos no válidos'}');
       } else {
-        print('Error HTTP: ${response.statusCode} - ${response.body}');
-        throw Exception('Error al cargar detalles de rutina: ${response.statusCode}');
+        print('Error HTTP en getRoutineDetails: ${response.statusCode} - ${response.body}');
+        throw Exception('Error al cargar detalles de rutina: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
       print('Error en getRoutineDetails: $e');
@@ -176,7 +185,6 @@ class RoutineService {
 
   static Future<void> updateExerciseSeries(int ejercicioRutinaId, List<Map<String, dynamic>> updatedSeries) async {
     try {
-      // Prepare the series to send
       final seriesToSend = updatedSeries.map((s) {
         final serie = s['serie']?.toString() ?? '0';
         final reps = s['repeticiones']?.toString() ?? '0';
@@ -197,7 +205,7 @@ class RoutineService {
 
       final updateResponse = await http.post(
         Uri.parse('$baseUrl/rutina/rutinas-personalizadas/series/update'),
-        headers: await _getHeaders(requireAuth: false),
+        headers: await _getHeaders(),
         body: jsonEncode({
           'ejercicio_rutina_id': ejercicioRutinaId,
           'series': seriesToSend,
@@ -205,13 +213,13 @@ class RoutineService {
       );
 
       if (updateResponse.statusCode != 200) {
-        print('Error HTTP: ${updateResponse.statusCode} - ${updateResponse.body}');
-        throw Exception('Error al actualizar series: ${updateResponse.statusCode}');
+        print('Error HTTP en updateExerciseSeries: ${updateResponse.statusCode} - ${updateResponse.body}');
+        throw Exception('Error al actualizar series: ${updateResponse.statusCode} - ${updateResponse.body}');
       }
 
       final updateData = jsonDecode(updateResponse.body);
       if (updateData['success'] != true) {
-        throw Exception('Error al actualizar series: ${updateData['detail']}');
+        throw Exception('Error al actualizar series: ${updateData['detail'] ?? 'Error desconocido'}');
       }
     } catch (e) {
       print('Error en updateExerciseSeries: $e');
@@ -220,19 +228,16 @@ class RoutineService {
   }
 
   static Future<void> deleteExerciseSeries(int serieId) async {
-  final url = Uri.parse('$baseUrl/rutina/rutinas-personalizadas/series/$serieId'); // Updated URL
-  final response = await http.delete(
-    url,
-    headers: {
-      'Content-Type': 'application/json',
-      // Agrega encabezados de autenticación si es necesario
-      // 'Authorization': 'Bearer ${await getToken()}',
-    },
-  );
+    final url = Uri.parse('$baseUrl/rutina/rutinas-personalizadas/series/$serieId');
+    final response = await http.delete(
+      url,
+      headers: await _getHeaders(),
+    );
 
-  if (response.statusCode != 200) {
-    final errorData = jsonDecode(response.body);
-    throw Exception(errorData['detail'] ?? 'Error al eliminar la serie');
+    if (response.statusCode != 200) {
+      final errorData = jsonDecode(response.body);
+      print('Error HTTP en deleteExerciseSeries: ${response.statusCode} - ${response.body}');
+      throw Exception(errorData['detail'] ?? 'Error al eliminar la serie');
+    }
   }
-}
 }

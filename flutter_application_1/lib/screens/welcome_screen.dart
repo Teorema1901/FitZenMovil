@@ -143,7 +143,7 @@ class WelcomeScreen extends StatelessWidget {
           errorBuilder: (context, error, stackTrace) {
             // 
             if (iconPath.contains('facebook')) {
-              return const Icon(Icons.facebook, color: Colors.blue);
+              return const Icon(Icons.facebook, color: Color.fromARGB(255, 15, 21, 26));
             } else if (iconPath.contains('google')) {
               return const Icon(Icons.g_mobiledata, color: Colors.red);
             } else {

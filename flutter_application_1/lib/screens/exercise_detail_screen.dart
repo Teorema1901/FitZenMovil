@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../common/color_extension.dart';
-import 'package:flutter/cupertino.dart'; // For CupertinoSwitch
-import '../services/routine_service.dart'; // Import RoutineService
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../services/routine_service.dart';
 
 class ExerciseDetailScreen extends StatefulWidget {
   final Map<String, dynamic> exercise;
@@ -18,30 +18,29 @@ class ExerciseDetailScreen extends StatefulWidget {
 }
 
 class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
-  final TextEditingController _notesController = TextEditingController();
   final TextEditingController _restTimeController = TextEditingController();
-  bool _restTimerEnabled = false;
   late List<Map<String, dynamic>> _series;
   final ScrollController _scrollController = ScrollController();
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    // Initialize series with controllers, including serie_id
+    // Initialize series with controllers
     _series = (widget.exercise['series'] as List<Map<String, dynamic>>?)?.map((serie) {
       return {
-        'serie_id': serie['serie_id'] ?? 0, // Preserve serie_id, default to 0 for new series
-        'serie': serie['serie'],
+        'serie_id': serie['serie_id'] ?? 0,
+        'serie': serie['serie'] ?? 1,
         'kg': serie['kg']?.toString() ?? '',
         'reps': serie['reps']?.toString() ?? '',
         'restTime': serie['restTime'] ?? 60,
         'kgController': TextEditingController(text: serie['kg']?.toString() ?? ''),
         'repsController': TextEditingController(text: serie['reps']?.toString() ?? ''),
-        'isDeleting': false, // Add isDeleting flag
+        'isDeleting': false,
       };
     }).toList() ?? [
       {
-        'serie_id': 0, // New series will have serie_id: 0
+        'serie_id': 0,
         'serie': 1,
         'kg': '',
         'reps': '',
@@ -52,15 +51,13 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
       }
     ];
 
-    _notesController.text = widget.exercise['notes'] ?? '';
-    _restTimerEnabled = widget.exercise['restTimerEnabled'] ?? false;
     _restTimeController.text = widget.exercise['restTime']?.toString() ?? '60';
   }
 
   void _addSeries() {
     setState(() {
       _series.add({
-        'serie_id': 0, // New series should have serie_id: 0
+        'serie_id': 0,
         'serie': _series.length + 1,
         'kg': '',
         'reps': '',
@@ -84,7 +81,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     final serie = Map<String, dynamic>.from(_series[index]);
     final serieId = serie['serie_id'] as int? ?? 0;
 
-    // If the series has a valid serie_id, delete it from the backend
     if (serieId > 0) {
       setState(() {
         _series[index]['isDeleting'] = true;
@@ -97,11 +93,13 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al eliminar la serie: $e'),
-            action: SnackBarAction(
-              label: 'Reintentar',
-              onPressed: () => _removeSeries(index),
+            content: Text(
+              'Error al eliminar la serie: $e',
+              style: GoogleFonts.poppins(color: const Color(0xFFF5F5F5)),
             ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
         return;
@@ -109,34 +107,35 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     }
 
     setState(() {
-      _series[index]['isDeleting'] = false;
       _series[index]['kgController'].dispose();
       _series[index]['repsController'].dispose();
       _series.removeAt(index);
-      // Reassign serie numbers
       for (int i = 0; i < _series.length; i++) {
         _series[i]['serie'] = i + 1;
       }
-      print('Series after removal: $_series');
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Serie ${serie['serie']} eliminada'),
+        content: Text(
+          'Serie ${serie['serie']} eliminada',
+          style: GoogleFonts.poppins(color: const Color(0xFFF5F5F5)),
+        ),
+        backgroundColor: Colors.grey[800],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         action: SnackBarAction(
           label: 'Deshacer',
+          textColor: const Color(0xFF42A5F5),
           onPressed: () {
             setState(() {
-              // Restore controllers for the undone series
               serie['kgController'] = TextEditingController(text: serie['kg']);
               serie['repsController'] = TextEditingController(text: serie['reps']);
               serie['isDeleting'] = false;
               _series.insert(index, serie);
-              // Reassign serie numbers
               for (int i = 0; i < _series.length; i++) {
                 _series[i]['serie'] = i + 1;
               }
-              print('Series after undo: $_series');
             });
           },
         ),
@@ -144,414 +143,513 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
   }
 
-  void _saveExercise() {
+  void _saveExercise() async {
+    if (_isSaving) return;
+
+    final restTime = int.tryParse(_restTimeController.text) ?? 60;
+    if (restTime <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'El tiempo de descanso debe ser mayor a 0 segundos',
+            style: GoogleFonts.poppins(color: const Color(0xFFF5F5F5)),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
     final updatedExercise = Map<String, dynamic>.from(widget.exercise);
     updatedExercise['series'] = _series.map((serie) {
       return {
-        'serie_id': serie['serie_id'], // Include serie_id
+        'serie_id': serie['serie_id'],
         'serie': serie['serie'],
         'kg': serie['kg'],
         'reps': serie['reps'],
-        'restTime': _restTimerEnabled ? (int.tryParse(_restTimeController.text) ?? 60) : 60,
+        'restTime': restTime,
       };
     }).toList();
-    updatedExercise['notes'] = _notesController.text;
-    updatedExercise['restTimerEnabled'] = _restTimerEnabled;
-    updatedExercise['restTime'] = _restTimerEnabled ? int.tryParse(_restTimeController.text) ?? 60 : 60;
+    updatedExercise['restTime'] = restTime;
 
-    print('ExerciseDetailScreen: Saving exercise: $updatedExercise');
-    widget.onSave(updatedExercise);
-    Navigator.pop(context);
+    try {
+      widget.onSave(updatedExercise);
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error al guardar el ejercicio: $e',
+            style: GoogleFonts.poppins(color: const Color(0xFFF5F5F5)),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: CustomScrollView(
-        slivers: [
-          // Gradient Header
-          SliverAppBar(
-            backgroundColor: Colors.black,
-            elevation: 0,
-            expandedHeight: 200.0,
-            floating: false,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                widget.exercise['nombre'],
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+      backgroundColor: const Color(0xFF0A0A0A),
+      body: Stack(
+        children: [
+          CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              // Gradient Header
+              SliverAppBar(
+                backgroundColor: const Color(0xFF0A0A0A),
+                elevation: 0,
+                expandedHeight: 220.0,
+                floating: false,
+                pinned: true,
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFF5F5F5), size: 24),
+                  onPressed: () => Navigator.pop(context),
                 ),
-              ),
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  widget.exercise['img_url'] != null
-                      ? Image.network(
-                          widget.exercise['img_url'],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.grey[900],
-                              child: Icon(
-                                Icons.fitness_center,
-                                color: ColorExtension.primaryColor,
-                                size: 80,
-                              ),
-                            );
-                          },
-                        )
-                      : Container(
-                          color: Colors.grey[900],
-                          child: Icon(
-                            Icons.fitness_center,
-                            color: ColorExtension.primaryColor,
-                            size: 80,
+                actions: [
+                  TextButton(
+                    onPressed: _isSaving ? null : _saveExercise,
+                    child: _isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFF5F5F5)),
+                            ),
+                          )
+                        : Text(
+                            'Guardar',
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFFF5F5F5), // Changed to white
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.2),
-                          Colors.black.withOpacity(0.9),
-                        ],
-                      ),
-                    ),
                   ),
                 ],
-              ),
-            ),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            actions: [
-              TextButton(
-                onPressed: _saveExercise,
-                child: const Text(
-                  'Guardar',
-                  style: TextStyle(color: Colors.blue, fontSize: 16),
-                ),
-              ),
-            ],
-          ),
-
-          // Main Content
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Notes Section
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[900],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: TextField(
-                      controller: _notesController,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        hintText: 'Agregar notas de rutina aquí',
-                        hintStyle: TextStyle(color: Colors.grey),
-                        border: InputBorder.none,
-                      ),
+                flexibleSpace: FlexibleSpaceBar(
+                  titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
+                  title: Text(
+                    widget.exercise['nombre'] ?? 'Ejercicio sin nombre',
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFFF5F5F5),
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
                     ),
                   ),
-
-                  const SizedBox(height: 20),
-
-                  // Rest Timer Section
-                  Container(
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[900],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.timer,
-                                  color: Colors.blue,
-                                  size: 24,
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Temporizador de descanso',
-                                  style: TextStyle(color: Colors.white, fontSize: 16),
-                                ),
-                              ],
-                            ),
-                            CupertinoSwitch(
-                              value: _restTimerEnabled,
-                              onChanged: (value) {
-                                setState(() {
-                                  _restTimerEnabled = value;
-                                });
-                              },
-                              activeColor: Colors.blue,
-                              trackColor: Colors.grey[700],
-                            ),
-                          ],
-                        ),
-                        if (_restTimerEnabled) ...[
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              const Text(
-                                'Tiempo de descanso (segundos):',
-                                style: TextStyle(color: Colors.white, fontSize: 16),
-                              ),
-                              const SizedBox(width: 8),
-                              SizedBox(
-                                width: 60,
-                                child: TextField(
-                                  controller: _restTimeController,
-                                  keyboardType: TextInputType.number,
-                                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                                  decoration: InputDecoration(
-                                    hintText: '60',
-                                    hintStyle: const TextStyle(color: Colors.grey),
-                                    filled: true,
-                                    fillColor: Colors.grey[800],
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                  ),
-                                ),
-                              ),
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF1976D2),
+                              Color(0xFF42A5F5),
                             ],
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Series Section Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Series',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                        ),
+                        child: Opacity(
+                          opacity: 0.15,
+                          child: widget.exercise['img_url'] != null
+                              ? Image.network(
+                                  widget.exercise['img_url'],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => const Icon(
+                                    Icons.fitness_center,
+                                    size: 120,
+                                    color: Color(0xFFF5F5F5),
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.fitness_center,
+                                  size: 120,
+                                  color: Color(0xFFF5F5F5),
+                                ),
                         ),
                       ),
-                      Text(
-                        '${_series.length} ${_series.length == 1 ? "serie" : "series"}',
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.2),
+                              Colors.black.withOpacity(0.85),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 10),
-
-                  // Series List Header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[900],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            'SERIE',
-                            style: TextStyle(color: Colors.grey[400], fontSize: 14, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            'KG',
-                            style: TextStyle(color: Colors.grey[400], fontSize: 14, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            'REPS',
-                            style: TextStyle(color: Colors.grey[400], fontSize: 14, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(width: 40), // Space for delete button
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-                ],
+                ),
               ),
-            ),
-          ),
 
-          // Series List
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final serie = _series[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                  child: Dismissible(
-                    key: Key('serie_${serie['serie_id']}_${serie['serie']}'), // Unique key
-                    direction: DismissDirection.endToStart,
-                    onDismissed: (direction) {
-                      _removeSeries(index);
-                    },
-                    background: Container(
-                      color: Colors.red,
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 20.0),
-                      child: const Icon(Icons.delete, color: Colors.white),
-                    ),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      child: Card(
-                        color: Colors.grey[850],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+              // Main Content
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Rest Time Section
+                      Text(
+                        'Tiempo de Descanso',
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFFF5F5F5),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
                         ),
-                        elevation: 2,
-                        child: Stack(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 2,
-                                    child: Text(
-                                      '${serie['serie']}',
-                                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    flex: 3,
-                                    child: TextField(
-                                      textAlign: TextAlign.center,
-                                      keyboardType: TextInputType.number,
-                                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                                      decoration: InputDecoration(
-                                        hintText: '-',
-                                        hintStyle: const TextStyle(color: Colors.grey),
-                                        filled: true,
-                                        fillColor: Colors.white.withOpacity(0.1),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          borderSide: BorderSide.none,
-                                        ),
-                                        contentPadding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
-                                      ),
-                                      controller: serie['kgController'],
-                                      onChanged: (value) {
-                                        serie['kg'] = value;
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    flex: 3,
-                                    child: TextField(
-                                      textAlign: TextAlign.center,
-                                      keyboardType: TextInputType.number,
-                                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                                      decoration: InputDecoration(
-                                        hintText: '-',
-                                        hintStyle: const TextStyle(color: Colors.grey),
-                                        filled: true,
-                                        fillColor: Colors.white.withOpacity(0.1),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          borderSide: BorderSide.none,
-                                        ),
-                                        contentPadding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
-                                      ),
-                                      controller: serie['repsController'],
-                                      onChanged: (value) {
-                                        serie['reps'] = value;
-                                      },
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () => _removeSeries(index),
-                                  ),
-                                ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _restTimeController,
+                              keyboardType: TextInputType.number,
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFFF5F5F5),
+                                fontSize: 14,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: '60',
+                                hintStyle: GoogleFonts.poppins(
+                                  color: const Color(0xFFB0BEC5),
+                                  fontSize: 14,
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFF1A1A1A),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                               ),
                             ),
-                            if (serie['isDeleting'] == true)
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Center(child: CircularProgressIndicator()),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'segundos',
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFFB0BEC5),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Series Section Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Series',
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFFF5F5F5),
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF42A5F5).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFF42A5F5), width: 1),
+                            ),
+                            child: Text(
+                              '${_series.length} ${_series.length == 1 ? "serie" : "series"}',
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF42A5F5),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
                               ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Series List Header
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF252525),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 1,
+                              child: Text(
+                                'Serie',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFB0BEC5),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Peso (kg)',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFB0BEC5),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                'Reps',
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFB0BEC5),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(width: 40),
                           ],
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                );
-              },
-              childCount: _series.length,
-            ),
-          ),
-
-          // Add Series Button
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-              child: ElevatedButton.icon(
-                onPressed: _addSeries,
-                icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text(
-                  'Agregar Serie',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 5,
+              ),
+
+              // Series List
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final serie = _series[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                      child: Dismissible(
+                        key: Key('serie_${serie['serie_id']}_${serie['serie']}'),
+                        direction: DismissDirection.endToStart,
+                        onDismissed: (direction) {
+                          _removeSeries(index);
+                        },
+                        background: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20.0),
+                          child: const Icon(Icons.delete, color: Color(0xFFF5F5F5)),
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF252525),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Stack(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 1,
+                                      child: Text(
+                                        '${serie['serie']}',
+                                        style: GoogleFonts.poppins(
+                                          color: const Color(0xFFF5F5F5),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      flex: 2,
+                                      child: TextField(
+                                        textAlign: TextAlign.center,
+                                        keyboardType: TextInputType.number,
+                                        style: GoogleFonts.poppins(
+                                          color: const Color(0xFFF5F5F5),
+                                          fontSize: 14,
+                                        ),
+                                        decoration: InputDecoration(
+                                          hintText: '-',
+                                          hintStyle: GoogleFonts.poppins(
+                                            color: const Color(0xFFB0BEC5),
+                                            fontSize: 14,
+                                          ),
+                                          filled: true,
+                                          fillColor: const Color(0xFF1A1A1A),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: BorderSide.none,
+                                          ),
+                                          contentPadding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+                                        ),
+                                        controller: serie['kgController'],
+                                        onChanged: (value) {
+                                          serie['kg'] = value;
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      flex: 2,
+                                      child: TextField(
+                                        textAlign: TextAlign.center,
+                                        keyboardType: TextInputType.number,
+                                        style: GoogleFonts.poppins(
+                                          color: const Color(0xFFF5F5F5),
+                                          fontSize: 14,
+                                        ),
+                                        decoration: InputDecoration(
+                                          hintText: '-',
+                                          hintStyle: GoogleFonts.poppins(
+                                            color: const Color(0xFFB0BEC5),
+                                            fontSize: 14,
+                                          ),
+                                          filled: true,
+                                          fillColor: const Color(0xFF1A1A1A),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: BorderSide.none,
+                                          ),
+                                          contentPadding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+                                        ),
+                                        controller: serie['repsController'],
+                                        onChanged: (value) {
+                                          serie['reps'] = value;
+                                        },
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                      onPressed: () => _removeSeries(index),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (serie['isDeleting'] == true)
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF42A5F5)),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ).animate().fadeIn(duration: 600.ms, delay: (index * 150).ms).slideY(
+                          begin: 0.3,
+                          end: 0,
+                          duration: 600.ms,
+                          curve: Curves.easeOutCubic,
+                        );
+                  },
+                  childCount: _series.length,
+                ),
+              ),
+
+              // Add Series Button
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+                  child: GestureDetector(
+                    onTap: _addSeries,
+                    child: Container(
+                      height: 55,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF1976D2),
+                            Color(0xFF42A5F5),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.add, color: Color(0xFFF5F5F5), size: 24),
+                          const SizedBox(width: 10),
+                          Text(
+                            'Agregar Serie',
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFFF5F5F5),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ).animate().fadeIn(duration: 600.ms).scale(
+                        begin: const Offset(0.95, 0.95),
+                        end: const Offset(1.0, 1.0),
+                        duration: 600.ms,
+                        curve: Curves.easeOutCubic,
+                      ),
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+            ],
+          ),
+          if (_isSaving)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF42A5F5)),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -559,7 +657,6 @@ class _ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
 
   @override
   void dispose() {
-    _notesController.dispose();
     _restTimeController.dispose();
     _scrollController.dispose();
     for (var serie in _series) {

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../common/color_extension.dart';
 import 'exercise_detail_screen.dart';
 import '../services/routine_service.dart';
@@ -14,6 +16,7 @@ class RoutineDetailsScreen extends StatefulWidget {
 
 class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
   late List<Map<String, dynamic>> exercises;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -25,7 +28,6 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
   void updateExercises(List<Map<String, dynamic>> updatedExercises) {
     print('Updating exercises in UI: $updatedExercises');
     setState(() {
-      // Deep copy to ensure the list is updated correctly
       exercises = updatedExercises.map((e) => Map<String, dynamic>.from(e)).toList();
       widget.routine['ejercicios'] = exercises;
       widget.routine['count'] = exercises.length;
@@ -38,42 +40,55 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
     final routineName = widget.routine['nombre'] ?? 'Rutina sin nombre';
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF0A0A0A),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: Colors.black,
+            backgroundColor: const Color(0xFF0A0A0A),
             elevation: 0,
-            expandedHeight: 250.0,
+            expandedHeight: 300.0,
             floating: false,
             pinned: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFF5F5F5), size: 24),
+              onPressed: () => Navigator.pop(context),
+            ),
             flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
               title: Text(
                 routineName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                style: GoogleFonts.poppins(
+                  color: const Color(0xFFF5F5F5),
+                  fontSize: 26,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
                 ),
               ),
               background: Stack(
                 fit: StackFit.expand,
                 children: [
                   Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                         colors: [
-                          Colors.blue.withOpacity(0.5),
-                          Colors.black,
+                          Color(0xFF1976D2), // Deep blue
+                          Color(0xFF42A5F5), // Lighter blue
                         ],
                       ),
                     ),
-                    child: Icon(
-                      Icons.fitness_center,
-                      color: Colors.white.withOpacity(0.1),
-                      size: 150,
+                    child: Opacity(
+                      opacity: 0.15,
+                      child: Image.network(
+                        'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.fitness_center,
+                          size: 150,
+                          color: Color(0xFFF5F5F5),
+                        ),
+                      ),
                     ),
                   ),
                   Container(
@@ -83,7 +98,7 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.black.withOpacity(0.2),
-                          Colors.black.withOpacity(0.9),
+                          Colors.black.withOpacity(0.85),
                         ],
                       ),
                     ),
@@ -91,47 +106,45 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                 ],
               ),
             ),
-            
           ),
 
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16.0),
-                    
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Ejercicios',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                        style: GoogleFonts.poppins(
+                          color: const Color(0xFFF5F5F5),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
                         ),
                       ),
-                      Text(
-                        '${exercises.length} ${exercises.length == 1 ? "ejercicio" : "ejercicios"}',
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF42A5F5).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFF42A5F5), width: 1),
+                        ),
+                        child: Text(
+                          '${exercises.length} ${exercises.length == 1 ? "ejercicio" : "ejercicios"}',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF42A5F5),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -140,12 +153,13 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
           exercises.isEmpty
               ? SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
                     child: Text(
                       'No hay ejercicios en esta rutina.',
-                      style: TextStyle(
-                        color: Colors.grey[400],
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFFB0BEC5),
                         fontSize: 16,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ),
@@ -156,145 +170,161 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                       final exercise = exercises[index];
                       final series = (exercise['series'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Card(
-                          color: Colors.grey[900],
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 5,
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                        child: GestureDetector(
+                          onTap: () async {
+                            final updatedExercise = Map<String, dynamic>.from(exercise);
+                            updatedExercise['series'] = (updatedExercise['series'] as List<dynamic>?)?.cast<Map<String, dynamic>>()?.map((serie) => {
+                              'serie_id': serie['serie_id'] ?? 0,
+                              'serie': serie['numero_serie'] ?? serie['serie'] ?? 1,
+                              'kg': serie['peso']?.toString() ?? '',
+                              'reps': serie['repeticiones']?.toString() ?? '',
+                              'restTime': serie['tiempo_descanso'] ?? 60,
+                            }).toList() ?? [];
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ExerciseDetailScreen(
+                                  exercise: updatedExercise,
+                                  onSave: (savedExercise) async {
+                                    final ejercicioRutinaId = savedExercise['ejercicio_rutina_id'] as int;
+                                    final savedSeriesList = (savedExercise['series'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
+                                    final updatedSeries = savedSeriesList.map((serie) {
+                                      final serieId = serie['serie_id'] is int ? serie['serie_id'] : int.tryParse(serie['serie_id']?.toString() ?? '0') ?? 0;
+                                      final kg = serie['kg']?.toString() ?? '';
+                                      final reps = serie['reps']?.toString() ?? '';
+                                      return {
+                                        'serie_id': serieId,
+                                        'serie': serie['serie'],
+                                        'repeticiones': reps.isEmpty ? 0 : int.tryParse(reps) ?? 0,
+                                        'peso': kg.isEmpty ? 0.0 : double.tryParse(kg) ?? 0.0,
+                                        'tiempo_descanso': serie['restTime'] ?? 60,
+                                      };
+                                    }).toList().cast<Map<String, dynamic>>();
+
+                                    setState(() {
+                                      isLoading = true;
+                                    });
+                                    try {
+                                      await RoutineService.updateExerciseSeries(
+                                        ejercicioRutinaId,
+                                        updatedSeries,
+                                      );
+                                      final details = await RoutineService.getRoutineDetails(widget.routine['rutina_id']);
+                                      updateExercises(List<Map<String, dynamic>>.from(details['ejercicios'] ?? []));
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Error al actualizar series: $e',
+                                            style: GoogleFonts.poppins(color: const Color(0xFFF5F5F5)),
+                                          ),
+                                          backgroundColor: Colors.redAccent,
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      );
+                                    } finally {
+                                      setState(() {
+                                        isLoading = false;
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                            );
+                          },
                           child: Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              gradient: LinearGradient(
+                              color: const Color(0xFF1A1A1A),
+                              borderRadius: BorderRadius.circular(20),
+                              gradient: const LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  Colors.grey[800]!,
-                                  Colors.grey[850]!,
+                                  Color(0xFF252525),
+                                  Color(0xFF1A1A1A),
                                 ],
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.4),
+                                  offset: const Offset(4, 4),
+                                  blurRadius: 10,
+                                ),
+                                BoxShadow(
+                                  color: Colors.white.withOpacity(0.03),
+                                  offset: const Offset(-4, -4),
+                                  blurRadius: 10,
+                                ),
+                              ],
                             ),
                             child: ExpansionTile(
                               leading: Container(
-                                width: 50,
-                                height: 50,
+                                width: 56,
+                                height: 56,
                                 decoration: BoxDecoration(
-                                  color: ColorExtension.primaryColor.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: const Color(0xFF42A5F5).withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0xFF42A5F5).withOpacity(0.3), width: 1),
                                 ),
                                 child: exercise['img_url'] != null
                                     ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(16),
                                         child: Image.network(
                                           exercise['img_url'],
                                           fit: BoxFit.cover,
                                           errorBuilder: (context, error, stackTrace) {
                                             return Icon(
                                               Icons.fitness_center,
-                                              color: ColorExtension.primaryColor,
+                                              color: const Color(0xFF42A5F5),
+                                              size: 28,
                                             );
                                           },
                                         ),
                                       )
                                     : Icon(
                                         Icons.fitness_center,
-                                        color: ColorExtension.primaryColor,
+                                        color: const Color(0xFF42A5F5),
+                                        size: 28,
                                       ),
                               ),
                               title: Text(
                                 exercise['nombre'] ?? 'Ejercicio sin nombre',
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFF5F5F5),
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.2,
                                 ),
                               ),
                               subtitle: Text(
                                 '${series.length} ${series.length == 1 ? "serie" : "series"}',
-                                style: TextStyle(
-                                  color: Colors.grey[400],
+                                style: GoogleFonts.poppins(
+                                  color: const Color(0xFFB0BEC5),
                                   fontSize: 14,
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () async {
-                                  // Prepare the exercise data for ExerciseDetailScreen
-                                  final updatedExercise = Map<String, dynamic>.from(exercise);
-                                  updatedExercise['series'] = (updatedExercise['series'] as List<dynamic>?)?.cast<Map<String, dynamic>>()?.map((serie) => {
-                                    'serie_id': serie['serie_id'] ?? 0,
-                                    'serie': serie['numero_serie'] ?? serie['serie'] ?? 1,
-                                    'kg': serie['peso']?.toString() ?? '',
-                                    'reps': serie['repeticiones']?.toString() ?? '',
-                                    'restTime': serie['tiempo_descanso'] ?? 60,
-                                  }).toList() ?? [];
-                                  print('Series sent to ExerciseDetailScreen: ${updatedExercise['series']}');
-
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ExerciseDetailScreen(
-                                        exercise: updatedExercise,
-                                        onSave: (savedExercise) async {
-                                          print('RoutineDetailsScreen: Received saved exercise: $savedExercise');
-                                          final ejercicioRutinaId = savedExercise['ejercicio_rutina_id'] as int;
-
-                                          // Map the saved series from ExerciseDetailScreen
-                                          final savedSeriesList = (savedExercise['series'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [];
-                                          print('RoutineDetailsScreen: Saved series list: $savedSeriesList');
-
-                                          // Update the remaining series
-                                          final updatedSeries = savedSeriesList.map((serie) {
-                                            final serieId = serie['serie_id'] is int ? serie['serie_id'] : int.tryParse(serie['serie_id']?.toString() ?? '0') ?? 0;
-                                            final kg = serie['kg']?.toString() ?? '';
-                                            final reps = serie['reps']?.toString() ?? '';
-                                            return {
-                                              'serie_id': serieId,
-                                              'serie': serie['serie'],
-                                              'repeticiones': reps.isEmpty ? 0 : int.tryParse(reps) ?? 0,
-                                              'peso': kg.isEmpty ? 0.0 : double.tryParse(kg) ?? 0.0,
-                                              'tiempo_descanso': serie['restTime'] ?? 60,
-                                            };
-                                          }).toList().cast<Map<String, dynamic>>();
-
-                                          print('Series to be updated in backend: $updatedSeries');
-
-                                          try {
-                                            // Update the remaining series in the backend
-                                            await RoutineService.updateExerciseSeries(
-                                              ejercicioRutinaId,
-                                              updatedSeries,
-                                            );
-                                            // Refresh the routine details from the backend
-                                            final details = await RoutineService.getRoutineDetails(widget.routine['rutina_id']);
-                                            print('Refreshed routine details: ${details['ejercicios']}');
-                                            updateExercises(List<Map<String, dynamic>>.from(details['ejercicios'] ?? []));
-                                          } catch (e) {
-                                            print('Error updating series: $e');
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Error al actualizar series: $e')),
-                                            );
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                },
+                              trailing: Icon(
+                                Icons.edit_outlined,
+                                color: const Color(0xFF42A5F5),
+                                size: 24,
                               ),
-                              childrenPadding: const EdgeInsets.only(bottom: 8.0),
+                              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              childrenPadding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
                               expandedCrossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (exercise['notes']?.isNotEmpty == true)
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                    padding: const EdgeInsets.symmetric(vertical: 8.0),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
+                                        Text(
                                           'Notas',
-                                          style: TextStyle(
-                                            color: Colors.white,
+                                          style: GoogleFonts.poppins(
+                                            color: const Color(0xFFF5F5F5),
                                             fontSize: 14,
                                             fontWeight: FontWeight.w500,
                                           ),
@@ -302,9 +332,10 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                                         const SizedBox(height: 4),
                                         Text(
                                           exercise['notes'],
-                                          style: TextStyle(
-                                            color: Colors.grey[400],
-                                            fontSize: 12,
+                                          style: GoogleFonts.poppins(
+                                            color: const Color(0xFFB0BEC5),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w400,
                                           ),
                                         ),
                                       ],
@@ -312,36 +343,38 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                                   ),
                                 if (exercise['restTimerEnabled'] == true)
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                    padding: const EdgeInsets.symmetric(vertical: 8.0),
                                     child: Text(
                                       'Tiempo de descanso: ${exercise['restTime']} seg',
-                                      style: TextStyle(
-                                        color: Colors.grey[400],
-                                        fontSize: 12,
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFFB0BEC5),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w400,
                                       ),
                                     ),
                                   ),
                                 if (series.isEmpty)
                                   Padding(
-                                    padding: const EdgeInsets.all(16.0),
+                                    padding: const EdgeInsets.symmetric(vertical: 12.0),
                                     child: Text(
                                       'No hay series configuradas para este ejercicio.',
-                                      style: TextStyle(
-                                        color: Colors.grey[400],
+                                      style: GoogleFonts.poppins(
+                                        color: const Color(0xFFB0BEC5),
                                         fontSize: 14,
+                                        fontWeight: FontWeight.w400,
                                       ),
                                     ),
                                   )
                                 else
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                    padding: const EdgeInsets.symmetric(vertical: 8.0),
                                     child: Column(
                                       children: [
                                         Container(
-                                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
                                           decoration: BoxDecoration(
-                                            color: Colors.grey[850],
-                                            borderRadius: BorderRadius.circular(8),
+                                            color: const Color(0xFF252525),
+                                            borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: Row(
                                             children: [
@@ -349,10 +382,10 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                                                 flex: 2,
                                                 child: Text(
                                                   'Serie',
-                                                  style: TextStyle(
-                                                    color: Colors.grey[400],
+                                                  style: GoogleFonts.poppins(
+                                                    color: const Color(0xFFB0BEC5),
                                                     fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
                                                   textAlign: TextAlign.center,
                                                 ),
@@ -361,10 +394,10 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                                                 flex: 3,
                                                 child: Text(
                                                   'Peso (kg)',
-                                                  style: TextStyle(
-                                                    color: Colors.grey[400],
+                                                  style: GoogleFonts.poppins(
+                                                    color: const Color(0xFFB0BEC5),
                                                     fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
                                                   textAlign: TextAlign.center,
                                                 ),
@@ -373,10 +406,10 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                                                 flex: 3,
                                                 child: Text(
                                                   'Reps',
-                                                  style: TextStyle(
-                                                    color: Colors.grey[400],
+                                                  style: GoogleFonts.poppins(
+                                                    color: const Color(0xFFB0BEC5),
                                                     fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
                                                   textAlign: TextAlign.center,
                                                 ),
@@ -385,10 +418,10 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                                                 flex: 3,
                                                 child: Text(
                                                   'Descanso',
-                                                  style: TextStyle(
-                                                    color: Colors.grey[400],
+                                                  style: GoogleFonts.poppins(
+                                                    color: const Color(0xFFB0BEC5),
                                                     fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
                                                   textAlign: TextAlign.center,
                                                 ),
@@ -396,16 +429,17 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                                             ],
                                           ),
                                         ),
+                                        const SizedBox(height: 8),
                                         ...series.asMap().entries.map((entry) {
                                           final serieIndex = entry.key;
                                           final serie = entry.value;
                                           return Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
                                             decoration: BoxDecoration(
                                               border: Border(
                                                 bottom: BorderSide(
-                                                  color: Colors.grey[800]!,
-                                                  width: 1,
+                                                  color: Colors.grey[800]!.withOpacity(0.5),
+                                                  width: 0.5,
                                                 ),
                                               ),
                                             ),
@@ -415,9 +449,10 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                                                   flex: 2,
                                                   child: Text(
                                                     '${serieIndex + 1}',
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 12,
+                                                    style: GoogleFonts.poppins(
+                                                      color: const Color(0xFFF5F5F5),
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w500,
                                                     ),
                                                     textAlign: TextAlign.center,
                                                   ),
@@ -426,9 +461,10 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                                                   flex: 3,
                                                   child: Text(
                                                     serie['peso'] != null ? serie['peso'].toString() : '-',
-                                                    style: TextStyle(
-                                                      color: Colors.grey[400],
-                                                      fontSize: 12,
+                                                    style: GoogleFonts.poppins(
+                                                      color: const Color(0xFFB0BEC5),
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w400,
                                                     ),
                                                     textAlign: TextAlign.center,
                                                   ),
@@ -437,9 +473,10 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                                                   flex: 3,
                                                   child: Text(
                                                     serie['repeticiones'] != null ? serie['repeticiones'].toString() : '-',
-                                                    style: TextStyle(
-                                                      color: Colors.grey[400],
-                                                      fontSize: 12,
+                                                    style: GoogleFonts.poppins(
+                                                      color: const Color(0xFFB0BEC5),
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w400,
                                                     ),
                                                     textAlign: TextAlign.center,
                                                   ),
@@ -448,9 +485,10 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                                                   flex: 3,
                                                   child: Text(
                                                     '${serie['tiempo_descanso'] ?? 60} seg',
-                                                    style: TextStyle(
-                                                      color: Colors.grey[400],
-                                                      fontSize: 12,
+                                                    style: GoogleFonts.poppins(
+                                                      color: const Color(0xFFB0BEC5),
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w400,
                                                     ),
                                                     textAlign: TextAlign.center,
                                                   ),
@@ -466,46 +504,18 @@ class _RoutineDetailsScreenState extends State<RoutineDetailsScreen> {
                             ),
                           ),
                         ),
-                      );
+                      ).animate().fadeIn(duration: 600.ms, delay: (index * 150).ms).slideY(
+                            begin: 0.3,
+                            end: 0,
+                            duration: 600.ms,
+                            curve: Curves.easeOutCubic,
+                          );
                     },
                     childCount: exercises.length,
                   ),
                 ),
 
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-              child: ElevatedButton.icon(
-                onPressed: exercises.isEmpty
-                    ? null
-                    : () {
-                        Navigator.pop(context, widget.routine);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Entrenamiento finalizado")),
-                        );
-                      },
-                icon: const Icon(Icons.check, color: Colors.white),
-                label: const Text(
-                  "Finalizar Entrenamiento",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 5,
-                  disabledBackgroundColor: Colors.grey[700],
-                ),
-              ),
-            ),
-          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 20)),
         ],
       ),
     );

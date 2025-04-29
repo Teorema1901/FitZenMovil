@@ -32,7 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final Map<String, String> fitnessGoals = {
     'Perdida_Peso': 'Pérdida de Peso',
     'Ganancia_Muscular': 'Ganancia Muscular',
-    'Acondicionamiento_Fisico': 'Acondicionamiento Físico',
+    // 'Acondicionamiento_Físico': 'Acondicionamiento Físico', // Removido porque el backend no lo acepta
   };
 
   @override
@@ -64,7 +64,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         text: (userData?["frecuencia_semanal"] != null ? _parseInt(userData!["frecuencia_semanal"]).toString() : "0"),
       );
       _sexo = userData?["sexo"]?.toString() ?? "M";
-      _objetivo = userData?["objetivo"]?.toString() ?? "Perdida_Peso";
+      // Ajustar objetivo para que sea un valor válido
+      _objetivo = fitnessGoals.containsKey(userData?["objetivo"]?.toString())
+          ? userData!["objetivo"].toString()
+          : "Perdida_Peso";
     });
 
     if (data == null) {
@@ -115,8 +118,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final response = await authService.updateUserData(
       usuarioId: int.parse(userData!["usuario_id"].toString()),
       nombre: _nombreController.text,
-      correo: userData!["correo"].toString(), // Use existing email
-      contrasena: userData!["contrasena"].toString(), // Use existing password
+      correo: userData!["correo"].toString(),
+      contrasena: userData!["contrasena"]?.toString(), // Ensure we pass the existing password
       edad: int.parse(_edadController.text),
       sexo: _sexo!,
       estatura: double.parse(_estaturaController.text),
@@ -130,12 +133,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     if (response['success'] == true) {
-      // Update SessionService with new data
+      // Actualizar los datos en SessionService
       final updatedData = {
         "usuario_id": userData!["usuario_id"],
         "nombre": _nombreController.text,
         "correo": userData!["correo"],
-        "contrasena": userData!["contrasena"],
+        "contrasena": userData!["contrasena"], // Preserve the password
         "edad": int.parse(_edadController.text),
         "sexo": _sexo,
         "estatura": double.parse(_estaturaController.text),
@@ -145,19 +148,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       };
       await SessionService.saveUserData(updatedData);
 
-      // Reload user data to refresh the UI
+      // Recargar los datos del usuario para refrescar la pantalla
       await _loadUserData();
 
+      // Salir del modo de edición
       setState(() {
         isEditing = false;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['detail'])),
+        SnackBar(
+          content: Text(response['detail']),
+          backgroundColor: Colors.blue,
+        ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['detail'])),
+        SnackBar(
+          content: Text(response['detail']),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -342,7 +352,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               return null;
                             },
                           ),
-                        if (isEditing)
+                        if (!isEditing)
+                          ProfileDetail(title: "Frecuencia Semanal", value: "${_frecuenciaSemanalController.text} días")
+                        else
                           TextFormField(
                             controller: _frecuenciaSemanalController,
                             decoration: InputDecoration(

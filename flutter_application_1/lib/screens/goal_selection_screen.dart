@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../common/color_extension.dart';
 import '../common/common_widgets.dart';
 import '../services/auth_service.dart';
-import '../services/session_service.dart'; // Importar el servicio de sesión
+import '../services/session_service.dart';
 import 'profile_screen.dart';
 
 class GoalSelectionScreen extends StatefulWidget {
@@ -14,6 +14,7 @@ class GoalSelectionScreen extends StatefulWidget {
   final String sexo;
   final double estatura;
   final double peso;
+  final int frecuenciaSemanal;
 
   const GoalSelectionScreen({
     Key? key,
@@ -25,6 +26,7 @@ class GoalSelectionScreen extends StatefulWidget {
     required this.sexo,
     required this.estatura,
     required this.peso,
+    required this.frecuenciaSemanal,
   }) : super(key: key);
 
   @override
@@ -36,21 +38,16 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
   bool isLoading = false;
   final AuthService _authService = AuthService();
 
-  // Lista de objetivos disponibles
   final List<String> goals = [
     'Perdida_Peso',
     'Ganancia_Muscular',
-    'Acondicionamiento_Fisico'
   ];
 
-  // Traducciones legibles para mostrar al usuario
   final Map<String, String> goalTranslations = {
     'Perdida_Peso': 'Pérdida de Peso',
     'Ganancia_Muscular': 'Ganancia Muscular',
-    'Acondicionamiento_Fisico': 'Acondicionamiento Físico'
   };
 
-  // Método para registrar al usuario y redirigir al perfil
   Future<void> _registerUser() async {
     if (selectedGoal == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -74,36 +71,28 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
         estatura: widget.estatura,
         peso: widget.peso,
         objetivo: selectedGoal!,
+        frecuenciaSemanal: widget.frecuenciaSemanal, // Added parameter
       );
+
+      print('Register response: $response');
 
       setState(() {
         isLoading = false;
       });
 
       if (response['success'] == true) {
-        // Crear un mapa con los datos del usuario
-        final Map<String, dynamic> userData = {
-          'nombre': widget.nombre,
-          'correo': widget.correo,
-          'edad': widget.edad,
-          'sexo': widget.sexo,
-          'estatura': widget.estatura,
-          'peso': widget.peso,
-          'objetivo': selectedGoal,
-        };
-        
-        // Guardar datos en SharedPreferences
-        await SessionService.saveUserData(userData);
-        
-        // Mostrar mensaje de éxito
+       
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['detail'] ?? 'Registro exitoso')),
-        );
-        
+  SnackBar(
+    content: Text(response['detail'] ?? 'Registro exitoso'),
+    backgroundColor: Colors.green
+  ),
+);
+
         // Ir directamente al perfil después del registro
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (context) => const ProfileScreen(), // Ya no pasamos userData como parámetro
+            builder: (context) => const ProfileScreen(),
           ),
           (route) => false,
         );
@@ -120,10 +109,10 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
       setState(() {
         isLoading = false;
       });
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error de conexión: $e'),
+          content: Text('Error: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -215,29 +204,26 @@ class _GoalSelectionScreenState extends State<GoalSelectionScreen> {
               
               const SizedBox(height: 20),
               PrimaryButton(
-  text: isLoading ? 'REGISTRANDO...' : 'COMPLETAR REGISTRO',
-  onPressed: () {
-    if (!isLoading) {
-      _registerUser();
-    }
-  },
-),
+                text: isLoading ? 'REGISTRANDO...' : 'COMPLETAR REGISTRO',
+                onPressed: () {
+                  if (!isLoading) {
+                    _registerUser();
+                  }
+                },
+              ),
             ],
           ),
         ),
       ),
     );
   }
-  
-  // Obtener ícono según el objetivo
+
   IconData getIconForGoal(String goal) {
     switch (goal) {
       case 'Perdida_Peso':
         return Icons.fitness_center;
       case 'Ganancia_Muscular':
         return Icons.sports_gymnastics;
-      case 'Acondicionamiento_Fisico':
-        return Icons.directions_run;
       default:
         return Icons.accessibility_new;
     }

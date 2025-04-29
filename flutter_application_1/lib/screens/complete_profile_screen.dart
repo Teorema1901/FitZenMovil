@@ -27,6 +27,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final edadController = TextEditingController();
   final alturaController = TextEditingController();
   final pesoController = TextEditingController();
+  final frecuenciaSemanalController = TextEditingController();
   String generoSeleccionado = ''; // Para almacenar 'M' o 'F'
 
   @override
@@ -41,6 +42,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
     edadController.dispose();
     alturaController.dispose();
     pesoController.dispose();
+    frecuenciaSemanalController.dispose();
     super.dispose();
   }
 
@@ -156,6 +158,28 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                       return null;
                     },
                   ),
+                  const SizedBox(height: 25),
+                  // Campo de frecuencia semanal
+                  _buildTextField(
+                    controller: frecuenciaSemanalController,
+                    hintText: 'Frecuencia Semanal (días)',
+                    icon: Icons.event_repeat,
+                    keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Por favor ingresa tu frecuencia semanal';
+                      }
+                      try {
+                        int frecuencia = int.parse(value);
+                        if (frecuencia <= 0 || frecuencia > 7) {
+                          return 'Ingresa un número de días válido (1-7)';
+                        }
+                      } catch (e) {
+                        return 'Ingresa un número válido';
+                      }
+                      return null;
+                    },
+                  ),
                   const SizedBox(height: 50),
                   // Botón continuar
                   PrimaryButton(
@@ -170,7 +194,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                         );
                         return;
                       }
-                      
+
                       if (_formKey.currentState!.validate()) {
                         Navigator.push(
                           context,
@@ -184,6 +208,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                               sexo: generoSeleccionado,
                               estatura: double.parse(alturaController.text),
                               peso: double.parse(pesoController.text),
+                              frecuenciaSemanal: int.parse(frecuenciaSemanalController.text),
                             ),
                           ),
                         );
@@ -302,8 +327,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: isSelected 
-                  ? ColorExtension.primaryColor.withOpacity(0.3) 
+              color: isSelected
+                  ? ColorExtension.primaryColor.withOpacity(0.3)
                   : Colors.grey.withOpacity(0.1),
               spreadRadius: isSelected ? 2 : 1,
               blurRadius: isSelected ? 5 : 3,
