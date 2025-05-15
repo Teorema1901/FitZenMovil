@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 extension ColorExtension on Color {
-  static Color get primaryColor => const Color(0xFF0A1D56);
+  static Color get primaryColor => const Color.fromARGB(255, 21, 53, 151);
   static Color get primaryDarkColor => const Color(0xFF061330);
   static Color get secondaryColor => const Color(0xFF0E2169);
   static Color get accentColor => const Color(0xFF3498ff);
