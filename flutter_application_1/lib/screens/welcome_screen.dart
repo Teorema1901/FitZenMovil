@@ -89,69 +89,12 @@ class WelcomeScreen extends StatelessWidget {
                       );
                     },
                   ),
-                  const SizedBox(height: 30),
-                  // 
-                  Text(
-                    'Continuar con',
-                    style: TextStyle(
-                      color: ColorExtension.whiteColor,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildSocialButton('assets/images/facebook_icon.png', () {}),
-                      const SizedBox(width: 20),
-                      _buildSocialButton('assets/images/google_icon.png', () {}),
-                      const SizedBox(width: 20),
-                      _buildSocialButton('assets/images/apple_icon.png', () {}),
-                    ],
-                  ),
                   const SizedBox(height: 40),
                 ],
               ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSocialButton(String iconPath, VoidCallback onPressed) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            spreadRadius: 2,
-          ),
-        ],
-      ),
-      child: IconButton(
-        icon: Image.asset(
-          iconPath,
-          width: 24,
-          height: 24,
-          errorBuilder: (context, error, stackTrace) {
-            // 
-            if (iconPath.contains('facebook')) {
-              return const Icon(Icons.facebook, color: Color.fromARGB(255, 15, 21, 26));
-            } else if (iconPath.contains('google')) {
-              return const Icon(Icons.g_mobiledata, color: Colors.red);
-            } else {
-              return const Icon(Icons.apple, color: Colors.black);
-            }
-          },
-        ),
-        onPressed: onPressed,
       ),
     );
   }

@@ -49,18 +49,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Error al cargar rutinas: $e',
-              style: GoogleFonts.poppins(color: const Color(0xFFF5F5F5)),
-            ),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
       }
     }
   }
@@ -72,14 +60,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         _routines.removeWhere((routine) => routine['rutina_id'] == rutinaId);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
+        SnackBar(
+          content: const Text(
             'Rutina eliminada correctamente',
             style: TextStyle(color: Color(0xFFF5F5F5)),
           ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     } catch (e) {
@@ -91,7 +81,9 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           ),
           backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     }
@@ -232,6 +224,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             ),
           ),
 
+          // Sliver para botones y título
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
@@ -367,6 +360,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             ),
           ),
 
+          // Rutinas cargadas
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
             sliver: _isLoading
