@@ -65,6 +65,38 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
   }
 
+  Future<void> _deleteRoutine(int rutinaId) async {
+    try {
+      await RoutineService.deleteRoutine(rutinaId);
+      setState(() {
+        _routines.removeWhere((routine) => routine['rutina_id'] == rutinaId);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Rutina eliminada correctamente',
+            style: TextStyle(color: Color(0xFFF5F5F5)),
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error al eliminar rutina: $e',
+            style: GoogleFonts.poppins(color: const Color(0xFFF5F5F5)),
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+  }
+
   void _showRoutineDetails(Map<String, dynamic> routine) async {
     final updatedRoutine = await Navigator.push(
       context,
@@ -82,6 +114,54 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         }
       });
     }
+  }
+
+  void _confirmDeleteRoutine(int rutinaId, String routineName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: Text(
+          'Eliminar Rutina',
+          style: GoogleFonts.poppins(
+            color: const Color(0xFFF5F5F5),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        content: Text(
+          '¿Estás seguro de que deseas eliminar la rutina "$routineName"? Esta acción no se puede deshacer.',
+          style: GoogleFonts.poppins(
+            color: const Color(0xFFB0BEC5),
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancelar',
+              style: GoogleFonts.poppins(
+                color: const Color(0xFF42A5F5),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteRoutine(rutinaId);
+            },
+            child: Text(
+              'Eliminar',
+              style: GoogleFonts.poppins(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -338,12 +418,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.4),
                                         offset: const Offset(4, 4),
-                                        blurRadius: 10, // Fixed: Correct parameter name
+                                        blurRadius: 10,
                                       ),
                                       BoxShadow(
                                         color: Colors.white.withOpacity(0.03),
-                                        offset: const Offset(-4, -4), // Fixed: Corrected typo in offset
-                                        blurRadius: 10, // Fixed: Correct parameter name
+                                        offset: const Offset(-4, -4),
+                                        blurRadius: 10,
                                       ),
                                     ],
                                   ),
@@ -382,10 +462,19 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                         fontWeight: FontWeight.w400,
                                       ),
                                     ),
-                                    trailing: Icon(
-                                      Icons.arrow_forward_ios,
-                                      color: const Color(0xFF42A5F5),
-                                      size: 20,
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20),
+                                          onPressed: () => _confirmDeleteRoutine(routine['rutina_id'], routine['nombre'] ?? 'Rutina sin nombre'),
+                                        ),
+                                        const Icon(
+                                          Icons.arrow_forward_ios,
+                                          color: Color(0xFF42A5F5),
+                                          size: 20,
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),

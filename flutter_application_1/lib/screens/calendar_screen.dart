@@ -8,6 +8,7 @@ import '../common/common_widgets.dart';
 import '../services/routine_service.dart';
 import '../services/session_service.dart';
 import 'login_screen.dart';
+import '../services/notification_service.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({Key? key}) : super(key: key);
@@ -24,15 +25,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
   final DateFormat _headerDateFormat = DateFormat('d MMM');
   final DateFormat _monthYearFormat = DateFormat('MMMM yyyy');
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
     super.initState();
     initializeDateFormatting('es', null).then((_) {
+      _notificationService.initialize();
       setState(() {
         _selectedWeekStart = _getWeekStart(DateTime.now());
       });
       _loadData();
+      _scheduleImmediateNotification(); // Programar notificación para 11:32 PM
     });
   }
 
@@ -64,13 +68,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
         if (data['success'] == true) {
           setState(() {
             _routines = routines;
-            print('Rutinas cargadas en CalendarScreen: $_routines');
             _calendarEvents = data['data'] != null
                 ? List<Map<String, dynamic>>.from(data['data'])
                 : [];
-            print('Eventos cargados en CalendarScreen: $_calendarEvents');
             _isLoading = false;
           });
+          _scheduleTodaysNotifications();
         } else {
           throw Exception('Formato de respuesta inesperado: ${data['detail'] ?? 'Datos no válidos'}');
         }
@@ -92,6 +95,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
         );
       }
     }
+  }
+
+  Future<void> _scheduleTodaysNotifications() async {
+    final now = DateTime.now();
+    for (var event in _calendarEvents) {
+      try {
+        final eventDate = DateTime.parse(event['fecha']).toLocal();
+        if (eventDate.day == now.day && eventDate.month == now.month && eventDate.year == now.year) {
+          await _notificationService.scheduleRoutineNotification(
+            event['rutina_nombre'] ?? 'Rutina sin nombre',
+            eventDate,
+          );
+        }
+      } catch (e) {
+        print('Error parsing event date: $e, event: $event');
+      }
+    }
+  }
+
+  Future<void> _scheduleImmediateNotification() async {
+    // Simulamos una rutina para notificar a las 11:32 PM
+    final routineName = _routines.isNotEmpty ? _routines[0]['nombre'] ?? 'Rutina sin nombre' : 'Rutina sin nombre';
+    await _notificationService.scheduleRoutineNotification(routineName, DateTime.now().add(const Duration(minutes: 1)));
   }
 
   Future<void> _scheduleRoutine(int rutinaId, DateTime date) async {

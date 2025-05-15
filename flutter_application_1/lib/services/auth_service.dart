@@ -6,9 +6,9 @@ import 'session_service.dart';
 class AuthService {
   static String get baseUrl {
     if (kIsWeb) {
-      return "http://127.0.0.1:3100/api";
+      return "http://127.0.0.1:3200/api";
     } else {
-      return "http://10.0.2.2:3100/api"; // Emulador Android
+      return "http://10.0.2.2:3200/api"; // Emulador Android
     }
   }
 

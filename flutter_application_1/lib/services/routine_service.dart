@@ -1,9 +1,24 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'session_service.dart';
 
 class RoutineService {
-  static const String baseUrl = "http://127.0.0.1:3100/api";
+  static String get baseUrl {
+    if (kIsWeb) {
+      return "http://127.0.0.1:3200/api";
+    } else {
+      return "http://10.0.2.2:3200/api"; // Emulador Android
+    }
+  }
+
+  static String get assetBaseUrl {
+    if (kIsWeb) {
+      return "http://127.0.0.1:3200";
+    } else {
+      return "http://10.0.2.2:3200"; // Emulador Android
+    }
+  }
 
   static Future<Map<String, String>> _getHeaders({bool requireAuth = true}) async {
     if (!requireAuth) {
@@ -31,7 +46,13 @@ class RoutineService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true && data['data'] is List) {
-          return List<Map<String, dynamic>>.from(data['data']);
+          return List<Map<String, dynamic>>.from(data['data']).map((exercise) {
+            return {
+              ...exercise,
+              'img_url': exercise['img_url'] != null ? '$assetBaseUrl/${exercise['img_url']}' : null,
+              'video_url': exercise['video_url'] != null ? '$assetBaseUrl/${exercise['video_url']}' : null,
+            };
+          }).toList();
         }
         throw Exception('Formato de respuesta inesperado: ${data['detail'] ?? 'Datos no válidos'}');
       } else {
@@ -67,7 +88,7 @@ class RoutineService {
       if (data['success'] == true) {
         return data;
       }
-      throw Exception('Error al crear rutina}');
+      throw Exception('Error al crear rutina');
     } else {
       print('Error HTTP en createRoutine: ${response.statusCode} - ${response.body}');
       throw Exception('Error al crear rutina');
@@ -238,6 +259,39 @@ class RoutineService {
       final errorData = jsonDecode(response.body);
       print('Error HTTP en deleteExerciseSeries: ${response.statusCode} - ${response.body}');
       throw Exception(errorData['detail'] ?? 'Error al eliminar la serie');
+    }
+  }
+
+  static Future<void> deleteRoutine(int rutinaId) async {
+    try {
+      final userData = await SessionService.getUserData();
+      if (userData == null || userData['usuario_id'] == null) {
+        throw Exception('Usuario no autenticado');
+      }
+
+      final usuarioId = userData['usuario_id'].toString();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/rutina/rutinas-personalizadas').replace(
+          queryParameters: {
+            'rutina_id': rutinaId.toString(),
+            'usuario_id': usuarioId,
+          },
+        ),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode != 200) {
+        print('Error HTTP en deleteRoutine: ${response.statusCode} - ${response.body}');
+        throw Exception('Error al eliminar rutina: ${response.statusCode} - ${response.body}');
+      }
+
+      final data = jsonDecode(response.body);
+      if (data['success'] != true) {
+        throw Exception('Error al eliminar rutina: ${data['detail'] ?? 'Error desconocido'}');
+      }
+    } catch (e) {
+      print('Error en deleteRoutine: $e');
+      throw Exception('Error al eliminar rutina: $e');
     }
   }
 }

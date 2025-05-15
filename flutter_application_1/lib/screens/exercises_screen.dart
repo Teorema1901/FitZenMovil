@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../common/color_extension.dart';
 import 'main_screen.dart';
 import '../services/routine_service.dart';
+import 'exercise_info_screen.dart';
 
 class ExercisesScreen extends StatefulWidget {
   const ExercisesScreen({Key? key}) : super(key: key);
@@ -50,7 +53,15 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar ejercicios: $e')),
+          SnackBar(
+            content: Text(
+              'Error al cargar ejercicios: $e',
+              style: GoogleFonts.poppins(color: const Color(0xFFF5F5F5)),
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         );
       }
     }
@@ -71,7 +82,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1C2126),
+      backgroundColor: const Color(0xFF0A0A0A),
       bottomNavigationBar: const CustomBottomNavigation(currentIndex: 2),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -82,15 +93,15 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                   padding: const EdgeInsets.all(16.0),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2A2F36),
-                      borderRadius: BorderRadius.circular(10),
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: TextField(
-                      style: const TextStyle(color: Colors.white),
+                      style: GoogleFonts.poppins(color: const Color(0xFFF5F5F5)),
                       decoration: InputDecoration(
                         hintText: "Buscar ejercicio",
-                        hintStyle: TextStyle(color: Colors.grey[400]),
-                        prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                        hintStyle: GoogleFonts.poppins(color: const Color(0xFFB0BEC5)),
+                        prefixIcon: const Icon(Icons.search, color: Color(0xFFB0BEC5)),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(vertical: 15),
                       ),
@@ -107,7 +118,6 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                     ),
                   ),
                 ),
-
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
@@ -123,26 +133,24 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2A2F36),
-                              borderRadius: BorderRadius.circular(8),
+                              color: const Color(0xFF1A1A1A),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.category, color: Colors.white, size: 18),
+                                const Icon(Icons.category, color: Color(0xFFF5F5F5), size: 18),
                                 const SizedBox(width: 8),
                                 Text(
                                   _selectedCategory,
-                                  style: const TextStyle(color: Colors.white),
+                                  style: GoogleFonts.poppins(color: const Color(0xFFF5F5F5)),
                                 ),
                               ],
                             ),
                           ),
                         ),
                       ),
-
                       const SizedBox(width: 12),
-
                       Expanded(
                         child: InkWell(
                           onTap: () {
@@ -154,18 +162,18 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2A2F36),
-                              borderRadius: BorderRadius.circular(8),
+                              color: const Color(0xFF1A1A1A),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.fitness_center, color: Colors.white, size: 18),
+                                const Icon(Icons.fitness_center, color: Color(0xFFF5F5F5), size: 18),
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
                                     _selectedMuscleGroup,
-                                    style: const TextStyle(color: Colors.white),
+                                    style: GoogleFonts.poppins(color: const Color(0xFFF5F5F5)),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -177,14 +185,13 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                     ],
                   ),
                 ),
-
                 if (_showCategoryFilter)
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2A2F36),
-                      borderRadius: BorderRadius.circular(8),
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.2),
@@ -208,10 +215,10 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                               children: [
                                 Text(
                                   category,
-                                  style: TextStyle(
+                                  style: GoogleFonts.poppins(
                                     color: _selectedCategory == category
                                         ? ColorExtension.primaryColor
-                                        : Colors.white,
+                                        : const Color(0xFFF5F5F5),
                                     fontWeight: _selectedCategory == category
                                         ? FontWeight.bold
                                         : FontWeight.normal,
@@ -227,14 +234,13 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                       }).toList(),
                     ),
                   ),
-
                 if (_showMuscleGroupFilter)
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2A2F36),
-                      borderRadius: BorderRadius.circular(8),
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.2),
@@ -258,10 +264,10 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                               children: [
                                 Text(
                                   muscleGroup,
-                                  style: TextStyle(
+                                  style: GoogleFonts.poppins(
                                     color: _selectedMuscleGroup == muscleGroup
                                         ? ColorExtension.primaryColor
-                                        : Colors.white,
+                                        : const Color(0xFFF5F5F5),
                                     fontWeight: _selectedMuscleGroup == muscleGroup
                                         ? FontWeight.bold
                                         : FontWeight.normal,
@@ -277,18 +283,16 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                       }).toList(),
                     ),
                   ),
-
                 Padding(
                   padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 8.0),
                   child: Text(
                     "Ejercicios populares (${filteredExercises.length})",
-                    style: TextStyle(
-                      color: Colors.grey[400],
+                    style: GoogleFonts.poppins(
+                      color: const Color(0xFFB0BEC5),
                       fontSize: 16,
                     ),
                   ),
                 ),
-
                 Expanded(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -307,68 +311,78 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                         ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(vertical: 8.0),
-                          leading: Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(25),
-                              child: exercise["img_url"] != null
-                                  ? Image.network(
-                                      exercise["img_url"],
-                                      errorBuilder: (context, error, stackTrace) {
-                                        final firstLetter = (exercise["nombre"]?.toString() ?? 'A')[0].toUpperCase();
-                                        return CircleAvatar(
-                                          backgroundColor: Colors.grey,
-                                          child: Text(
-                                            firstLetter,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.bold,
+                          leading: Hero(
+                            tag: 'exercise_thumbnail_${exercise['ejercicio_id']}',
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1A1A1A),
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(25),
+                                child: exercise["img_url"] != null
+                                    ? CachedNetworkImage(
+                                        imageUrl: exercise["img_url"],
+                                        placeholder: (context, url) => const CircularProgressIndicator(),
+                                        errorWidget: (context, url, error) {
+                                          print('Error loading image: ${exercise["img_url"]} - $error');
+                                          final firstLetter = (exercise["nombre"]?.toString() ?? 'A')[0].toUpperCase();
+                                          return CircleAvatar(
+                                            backgroundColor: const Color(0xFF252525),
+                                            child: Text(
+                                              firstLetter,
+                                              style: GoogleFonts.poppins(
+                                                color: const Color(0xFFF5F5F5),
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
+                                          );
+                                        },
+                                        fit: BoxFit.cover,
+                                      )
+                                    : CircleAvatar(
+                                        backgroundColor: const Color(0xFF252525),
+                                        child: Text(
+                                          (exercise["nombre"]?.toString() ?? 'A')[0].toUpperCase(),
+                                          style: GoogleFonts.poppins(
+                                            color: const Color(0xFFF5F5F5),
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                        );
-                                      },
-                                      fit: BoxFit.cover,
-                                    )
-                                  : CircleAvatar(
-                                      backgroundColor: Colors.grey,
-                                      child: Text(
-                                        (exercise["nombre"]?.toString() ?? 'A')[0].toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                    ),
+                              ),
                             ),
                           ),
                           title: Text(
                             exercise["nombre"]?.toString() ?? 'Ejercicio sin nombre',
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFFF5F5F5),
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                           subtitle: Text(
                             exercise["grupo_muscular"]?.toString() ?? 'Sin grupo muscular',
-                            style: TextStyle(
-                              color: Colors.grey[400],
+                            style: GoogleFonts.poppins(
+                              color: const Color(0xFFB0BEC5),
                               fontSize: 14,
                             ),
                           ),
                           trailing: const Icon(
                             Icons.chevron_right,
-                            color: Colors.grey,
+                            color: Color(0xFFB0BEC5),
                           ),
                           onTap: () {
-                            // Navigate to exercise detail screen (optional)
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ExerciseInfoScreen(exercise: exercise),
+                              ),
+                            );
                           },
                         ),
                       );
